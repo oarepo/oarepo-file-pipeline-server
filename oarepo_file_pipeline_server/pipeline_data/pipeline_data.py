@@ -1,32 +1,13 @@
-import io
-
-class PipelineData:
-    def __init__(self, stream: io.IOBase,) -> None:
-        """
-        Initialize with an input stream.
-
-        :param stream: An IOBase-like object for input.
-        """
-        if not isinstance(stream, io.IOBase):
-            raise ValueError("stream must be an instance of io.IOBase.")
-        self._stream = stream
-        self._metadata = dict()
+from typing import Protocol, runtime_checkable
 
 
-    def get_stream(self) -> io.IOBase:
-        """
-        Get the input stream.
-        :return: The stream object.
-        """
-        self._stream.seek(0)
-        return self._stream
+@runtime_checkable
+class PipelineData(Protocol):
+    async def read(self, n:int=1):
+        ...
 
-    @property
-    def metadata(self) -> dict:
-        """Property holding metadata like file_name, media_type, etc."""
-        return self._metadata
+    def __aiter__(self):
+        ...
 
-    @metadata.setter
-    def metadata(self, value: dict) -> None:
-        """Setter for metadata."""
-        self._metadata.update(value)
+    async def __anext__(self):
+        ...

@@ -1,5 +1,7 @@
 import abc
 import io
+from asyncio import StreamReader
+from typing import AsyncIterator, Self
 
 import aiohttp
 
@@ -13,14 +15,10 @@ import aiohttp
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 
+
+
+
 class PipelineStep(abc.ABC):
-    async def process(self, inputs: list[PipelineData], args: dict) -> list[PipelineData]:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
         pass
 
-    async def read_file_content_from_s3(self, source_url: str) -> io.BytesIO:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(source_url) as response:
-                if response.status != 200:
-                    raise ValueError(f"Failed to fetch file from URL: {response.status}")
-                content = await response.read()
-                return io.BytesIO(content)
