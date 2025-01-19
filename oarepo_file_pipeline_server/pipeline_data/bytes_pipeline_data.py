@@ -1,4 +1,10 @@
+"""
+Class that represents pipeline data with data stored in BytesIO.
+"""
+
 import io
+import os
+from typing import Self
 
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
@@ -13,26 +19,28 @@ class BytesPipelineData(PipelineData):
         if not isinstance(stream, io.BytesIO):
             raise ValueError("stream must be an instance of io.IOBase.")
         self._stream = stream
+        self._stream.seek(0)
         self._metadata = metadata
 
-    async def read(self, n: int = -1):
-        #print(f"Bytes pipeline data read, n = {n}")
+    async def read(self, n: int = -1) -> bytes:
+        """Read specific number of bytes from the stream. Default value is reading whole stream."""
         return self._stream.read(n)
 
-    def __aiter__(self):
+    def __aiter__(self) -> Self:
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> bytes:
+        """Receive next chunk of bytes from the stream. Raises StopAsyncIteration exception if read all."""
         chunk = await self.read(65000)
         if not chunk:
             raise StopAsyncIteration
         return chunk
 
-    async def seek(self, offset, whence):
-        print('seeking')
+    async def seek(self, offset: int, whence:int = os.SEEK_SET) -> int:
         return self._stream.seek(offset, whence)
 
-    async def tell(self):
+    async def tell(self) -> int:
+        """Tell current position in the stream."""
         return self._stream.tell()
 
     def get_stream(self) -> io.IOBase:

@@ -44,7 +44,7 @@ class ExtractFileZip(PipelineStep):
             item_type, item_value = await results.get()
 
 
-def zip_open_file(input_stream, file_name, result_queue: ResultQueue):
+def zip_open_file(input_stream, file_name: str, result_queue: ResultQueue) -> None:
     if not file_name:
         raise ValueError("No file name to extract was provided.")
 

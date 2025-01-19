@@ -1,8 +1,17 @@
+"""
+Class that represents pipeline data with data read from URL stream
+"""
+from __future__ import annotations
+from typing import TYPE_CHECKING, Self
+
+if TYPE_CHECKING:
+    import aiohttp
+
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 
 class UrlPipelineData(PipelineData):
-    def __init__(self, url, session):
+    def __init__(self, url: str, session: aiohttp.ClientSession) -> None:
         self._url = url
         self._current_reader = None
         self._current_pos = 0
@@ -10,10 +19,10 @@ class UrlPipelineData(PipelineData):
         self._session = session
         self._metadata = dict()
 
-    def __aiter__(self):
+    def __aiter__(self) -> Self :
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> bytes:
         chunk =  await self.read()
 
         if chunk is None:
@@ -21,7 +30,7 @@ class UrlPipelineData(PipelineData):
         return chunk
 
 
-    def get_stream(self):
+    def get_stream(self) -> aiohttp.StreamReader:
         """
         Get the input stream.
         :return: The stream object.
@@ -29,7 +38,7 @@ class UrlPipelineData(PipelineData):
 
         return self._current_reader
 
-    async def read(self, size=-1):
+    async def read(self, size=-1) -> bytes:
         if not self._current_reader:
             await self.seek(0)
 
@@ -66,10 +75,10 @@ class UrlPipelineData(PipelineData):
         """Setter for metadata."""
         self._metadata.update(value)
 
-    async def tell(self):
+    async def tell(self) -> int:
         return self._current_pos
 
-    async def get_size(self):
+    async def get_size(self) -> int:
         if self._size is not None:
             return self._size
 

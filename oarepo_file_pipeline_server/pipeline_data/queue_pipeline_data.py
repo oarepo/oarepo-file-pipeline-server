@@ -1,11 +1,14 @@
+"""
+Class that represents pipeline data with data stored in asyncio.Queue in chunks.
+"""
 import asyncio
 import io
 
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
-
+from typing import Self
 
 class QueuePipelineData(PipelineData):
-    def __init__(self, queue: asyncio.Queue, metadata:dict):
+    def __init__(self, queue: asyncio.Queue, metadata:dict) -> None:
         self.queue = queue
         self.current_chunk: bytes | None = None
         self.current_chunk_index = 0
@@ -13,10 +16,10 @@ class QueuePipelineData(PipelineData):
         self._metadata = metadata
         self.end_of_file = False
 
-    def __aiter__(self):
+    def __aiter__(self) -> Self:
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> bytes:
         chunk = await self.read(65000)
         if not chunk:
             raise StopAsyncIteration

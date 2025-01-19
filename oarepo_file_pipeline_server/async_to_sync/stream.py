@@ -6,7 +6,7 @@ class AsyncToSyncStream:
         self.async_stream = async_stream
         self.event_loop = even_loop
 
-    def seek(self, offset, pos=0):
+    def seek(self, offset, pos: int=0):
         #print(f'seeking {offset} to {pos}')
         value = self.async_to_sync(self.async_stream.seek(offset, pos))
         #print(f'seek return {value}')
@@ -22,7 +22,7 @@ class AsyncToSyncStream:
         #print(f'tell return {value}')
         return value
 
-    def read(self, size=-1):
+    def read(self, size:int=-1):
         #print(f'reading {size}')
         value = self.async_to_sync(self.async_stream.read(size))
         #print(f'reading return {len(value)}')

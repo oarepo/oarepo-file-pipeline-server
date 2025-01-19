@@ -29,7 +29,7 @@ class PreviewZip(PipelineStep):
         yield output
 
 
-def zip_namelist(input_stream, result_queue: ResultQueue):
+def zip_namelist(input_stream, result_queue: ResultQueue) -> list:
     if not zipfile.is_zipfile(input_stream):
         raise ValueError("Input stream is not a valid ZIP file.")
 

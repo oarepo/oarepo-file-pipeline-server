@@ -30,7 +30,7 @@ class CreateZip(PipelineStep):
         yield output
 
 
-async def fill_queue(queue, inputs):
+async def fill_queue(queue, inputs) -> None:
     try:
         async for chunk in async_stream_zip(async_member_files(inputs)):
             # print(f'placing chunk, size of chunk: {len(chunk)}')
@@ -42,7 +42,7 @@ async def fill_queue(queue, inputs):
 # https://github.com/uktrade/stream-zip/blob/590f66c6aeff36e11f8f0b40a78f47e9c87994dc/stream_zip/__init__.py#L793
 
 # Another possible option is https://github.com/sandes/zipfly
-async def get_async_data(input_stream):
+async def get_async_data(input_stream) -> bytes:
     async for chunk in input_stream:
         yield chunk
 

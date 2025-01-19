@@ -42,7 +42,7 @@ class ExtractDirectoryZip(PipelineStep):
             item_type, item_value = await results.get()
 
 
-def extract_directory_zip(input_stream, directory_name, result_queue: ResultQueue):
+def extract_directory_zip(input_stream, directory_name: str, result_queue: ResultQueue) -> None:
     if not zipfile.is_zipfile(input_stream):
         raise ValueError("Input stream is not a valid ZIP file.")
 
