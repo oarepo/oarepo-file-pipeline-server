@@ -1,11 +1,10 @@
-from io import BytesIO
+import io
 from typing import AsyncIterator
 
 from PIL import Image
 
 
-from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, read_result, ResultQueue
-from oarepo_file_pipeline_server.pipeline_data.bytes_pipeline_data import BytesPipelineData
+from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, ResultQueue
 from oarepo_file_pipeline_server.pipeline_data.queue_pipeline_data import QueuePipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
 from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
@@ -42,31 +41,31 @@ class PreviewPicture(PipelineStep):
             item_type, item_value = await results.get()
 
 
-def image_open(input_stream, max_height, max_width, result_queue: ResultQueue):
+def image_open(input_stream, max_height: int, max_width: int, result_queue: ResultQueue) -> None:
     if max_height is None and max_width is None:
         raise ValueError("No max height and no max width provided.")
 
-    buffer = BytesIO()
-
+    buffer = io.BytesIO(input_stream.read())
+    thumbnailed = False
     # TODO image manipulation ( crop, resize etc...)
-    with Image.open(input_stream) as image:
-        print("Opened image")
+    with Image.open(buffer) as image:
         image.load()
-        # thumbnail will resize if picture is bigger or keep it if smaller
-        image.thumbnail((max_width, max_height))
 
-        # TODO quality arg is for JPEG only, do for other formats too
-        image.save(buffer, format=image.format, quality='keep')
+        # thumbnail will resize if picture is bigger or keep it if smaller
+        if max_width < image.width or max_height < image.height:
+            image.thumbnail((max_width, max_height))
+            new_buffer = io.BytesIO()
+            thumbnailed = True
+            image.save(new_buffer, format=image.format)
 
         result_queue.put('startfile', {
             'file_name' : image.filename,
             'media_type' : f'image/{image.format.lower()}',
             'mode' : f'{image.mode}',
-            'width' : image.width,
-            'height' : image.height,
+            'width' : image.size[0],
+            'height' : image.size[1],
         })
-        result_queue.put('chunk',buffer.getvalue())
+        result_queue.put('chunk',new_buffer.getvalue() if thumbnailed else buffer.getvalue())
         result_queue.put('endfile', b'')
-
 
 
