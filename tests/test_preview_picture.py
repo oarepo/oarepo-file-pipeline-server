@@ -135,6 +135,24 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_from_b
         await anext(outputs)
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_preview_picture_fail_input_is_not_picture():
+    with open("tests/files_for_tests/test_zip/test1.txt", "rb") as f:
+        picture = io.BytesIO(f.read())
+
+    async def get_data(picture_stream):
+        yield BytesPipelineData({'media_type': 'image/jpeg'}, picture_stream)
+
+    step = PreviewPicture()
+    inputs = get_data(picture)
+
+    outputs = step.process(inputs, {
+        'max_width': 1280,
+        'max_height': 960
+    })
+    with pytest.raises(PIL.UnidentifiedImageError):
+        await anext(outputs)
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_url():
     with open("tests/files_for_tests/CESNET.png", "rb") as f:
         picture = io.BytesIO(f.read())
@@ -163,20 +181,3 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_url():
     with pytest.raises(StopAsyncIteration):
         await anext(outputs)
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_preview_picture_fail_input_is_not_picture():
-    with open("tests/files_for_tests/test_zip/test1.txt", "rb") as f:
-        picture = io.BytesIO(f.read())
-
-    async def get_data(picture_stream):
-        yield BytesPipelineData({'media_type': 'image/jpeg'}, picture_stream)
-
-    step = PreviewPicture()
-    inputs = get_data(picture)
-
-    outputs = step.process(inputs, {
-        'max_width': 1280,
-        'max_height': 960
-    })
-    with pytest.raises(PIL.UnidentifiedImageError):
-        await anext(outputs)

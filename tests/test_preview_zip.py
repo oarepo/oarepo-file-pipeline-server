@@ -1,5 +1,5 @@
 import io
-import unittest
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
@@ -12,21 +12,25 @@ from oarepo_file_pipeline_server.pipeline_steps.preview_zip import PreviewZip
 async def test_preview_zip_success_from_url():
     step = PreviewZip()
 
-    outputs = step.process(
-        None,
-        args={
-            "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zip"
-        }
-    )
+    async with aiohttp.ClientSession() as session:
+        outputs = step.process(
+            None,
+            args={
+                "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zip",
+                "session": session,
+            }
+        )
 
-    output = await anext(outputs)
-    assert output.metadata == {'media_type': 'text/plain'}
+        output = await anext(outputs)
+        assert output.metadata == {'media_type': 'text/plain'}
 
-    assert await output.read() == b'test_zip/\ntest_zip/test1.txt'
-    assert await output.read() == b''
+        assert await output.read() == b'test_zip/\ntest_zip/test1.txt'
+        assert await output.read() == b''
 
-    with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        with pytest.raises(StopAsyncIteration):
+            await anext(outputs)
+
+
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -97,12 +101,11 @@ async def test_preview_zip_fail_no_inputs_no_args():
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_invalid_url():
     step = PreviewZip()
-
     with pytest.raises(ValueError):
         outputs = step.process(
             None,
             args={
-                "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/test_zip.zp"
+                "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zp",
             }
         )
         await anext(outputs)
