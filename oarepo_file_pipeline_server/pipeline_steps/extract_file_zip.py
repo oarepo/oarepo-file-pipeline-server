@@ -1,5 +1,3 @@
-import asyncio
-import io
 import mimetypes
 import os
 import zipfile
@@ -20,7 +18,7 @@ class ExtractFileZip(PipelineStep):
         if not inputs and not args:
             raise ValueError("No input or arguments were provided to ExtractFile step.")
         if inputs:
-            assert not isinstance(inputs, PipelineData) # TODO elsewhere
+            assert not isinstance(inputs, PipelineData)
 
             input_stream = await anext(inputs)
         elif args and "source_url" in args:

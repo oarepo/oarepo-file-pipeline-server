@@ -1,5 +1,7 @@
 import asyncio
 import io
+import random
+
 import aiohttp
 import pytest
 
@@ -137,6 +139,47 @@ async def test_queue_pipeline_data_read_all():
     content = await data.read()
 
     assert content == b'neconeco2'
+
+@pytest.mark.asyncio
+async def test_url_pipeline_data_download():
+    with open("tests/files_for_tests/1000_files.zip", "rb") as f:
+        async with aiohttp.ClientSession() as session:
+            data = UrlPipelineData('https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/1000_files.zip', session)
+
+            index = 0
+            async for chunk in data:
+
+                file_chunk = f.read(len(chunk))
+                assert chunk == file_chunk, f'failed at {index}'
+                index += len(chunk)
+
+@pytest.mark.asyncio
+async def test_url_pipeline_data_seek_random_positions():
+    with open("tests/files_for_tests/file_with_ints.bin", "rb") as f:
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(0)
+
+        for i in range(15):
+            start = random.randint(0, size)
+
+            chunk_size = random.randint(1, 128000)
+            f.seek(start, 0)
+            expected_bytes = f.read(chunk_size)
+            async with aiohttp.ClientSession() as session:
+                data = UrlPipelineData(
+                    'https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/file_with_ints.bin',
+                    session)
+
+                await data.seek(start, 0)
+                ret = await data.read(chunk_size)
+
+                if ret != expected_bytes:
+                    print(f'failed at {start=}, {chunk_size=}, expected_bytes_size={len(expected_bytes)}, ret len={len(ret)}')
+                    print(ret[:50])
+
+                assert ret == expected_bytes, f'failed at {start=}, {chunk_size=}, expected_bytes_size={len(expected_bytes)}, ret len={len(ret)}'
+
 
 
 

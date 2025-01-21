@@ -12,6 +12,11 @@ from typing import AsyncIterator, Self
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class PipelineStep(abc.ABC):
+    produces_multiple_outputs: bool = False
+
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
         pass
+
+
+
 

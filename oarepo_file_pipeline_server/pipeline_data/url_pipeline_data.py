@@ -2,6 +2,8 @@
 Class that represents pipeline data with data read from URL stream
 """
 from __future__ import annotations
+
+import io
 from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
@@ -12,8 +14,10 @@ from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class UrlPipelineData(PipelineData):
     def __init__(self, url: str, session: aiohttp.ClientSession) -> None:
+        """Constructor for UrlPipelineData"""
         self._url = url
         self._current_reader = None
+        self._response = None
         self._current_pos = 0
         self._size = None
         self._session = session
@@ -23,9 +27,10 @@ class UrlPipelineData(PipelineData):
         return self
 
     async def __anext__(self) -> bytes:
-        chunk =  await self.read()
+        """Asynchronously iterate through 65000 Kb of data"""
+        chunk =  await self.read(65000)
 
-        if chunk is None:
+        if not chunk:
             raise StopAsyncIteration
         return chunk
 
@@ -39,17 +44,38 @@ class UrlPipelineData(PipelineData):
         return self._current_reader
 
     async def read(self, size=-1) -> bytes:
+        """"Read size amount of bytes from stream"""
         if not self._current_reader:
             await self.seek(0)
 
         chunk = await self._current_reader.read(size)
         if not chunk:
-            return None
+            return b''
 
         self._current_pos += len(chunk)
-        return chunk
+        ret = io.BytesIO()
+        ret.write(chunk)
+
+        remaining = size - len(chunk)
+        while remaining:
+            chunk = await self._current_reader.read(remaining)
+            if not chunk:
+                break
+            self._current_pos += len(chunk)
+
+            remaining -= len(chunk)
+            ret.write(chunk)
+
+        return ret.getvalue()
 
     async def seek(self, offset, whence=0):
+        """Seek with offset and whence in strem."""
+        if whence==2 and offset==0:
+            self._current_pos = await self.get_size()
+            self._current_reader = None
+            return
+
+
         if whence==2:
             offset += await self.get_size()
         elif whence==1:
@@ -57,13 +83,24 @@ class UrlPipelineData(PipelineData):
         else:
             pass
 
+        # TODO seek is here and want to seek there
+        print(f'{self._current_pos=}, want to seek: {offset=}, {whence=}')
+
+        if self._response:
+            await self._response.__aexit__(None, None, None)
+
         # TODO Check status code etc
-        response = await self._session.get(self._url, headers={'range': f'bytes={offset}-'})
-        #print(f'seek async url headers {response.headers}')
-        self._current_reader = response.content
-        self._metadata['media_type'] = response.headers['Content-Type']
+        self._response = await self._session.get(self._url, headers={
+            'range': f'bytes={offset}-',
+            'Accept-Encoding': "identity"
+        })
+
+        if self._response.status != 206:
+            raise ValueError(f"Server does not support seek(), {offset=}, {self._response.headers['Content-Range']=}")
+
+        self._current_reader = self._response.content
+        self._metadata['media_type'] = self._response.headers['Content-Type']
         self._current_pos = offset
-        #print(f'seek async url stream pos {self._current_pos}')
 
     @property
     def metadata(self) -> dict:
@@ -76,9 +113,11 @@ class UrlPipelineData(PipelineData):
         self._metadata.update(value)
 
     async def tell(self) -> int:
+        """Tell current position in the stream"""
         return self._current_pos
 
     async def get_size(self) -> int:
+        """Get file size"""
         if self._size is not None:
             return self._size
 

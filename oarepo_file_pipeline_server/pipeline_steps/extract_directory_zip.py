@@ -10,6 +10,8 @@ from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class ExtractDirectoryZip(PipelineStep):
+    produces_multiple_outputs = True
+
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
         """
         Extracts a directory zip from the input zip file.
@@ -48,30 +50,25 @@ def extract_directory_zip(input_stream, directory_name: str, result_queue: Resul
 
     if not directory_name:
         raise ValueError("Directory name to extract is not specified in arguments.")
+    print(f'need to extract {directory_name=}')
 
+    # TODO check whether it is root of the zip to extract all files
     with zipfile.ZipFile(input_stream, 'r') as zip_file:
         # Normalize directory name to ensure it ends with 1 '/'
         # in case user made a typo with 2 backslashes instead of 1 etc.
         directory_name = directory_name.rstrip("/") + "/"
-        namelist = []
-        file_count = 0
+
+        print(f"Extracting {directory_name} folder...")
         for file_name in zip_file.namelist():
-            namelist.append(file_name)
-            if file_name.startswith(directory_name):
-                if not file_name.endswith("/"):
-                    file_count += 1
-
-
-        for file_name in namelist:
             if file_name.startswith(directory_name) and not file_name.endswith("/"):  # Exclude subdirectories
                 with zip_file.open(file_name, 'r') as extracted_file:
-                    filename = os.path.basename(file_name)
-                    mime_type, _ = mimetypes.guess_type(filename)
-                    print(f'Extracting {file_name}...')
+                    relative_path_name = os.path.relpath(file_name, directory_name)
+                    mime_type, _ = mimetypes.guess_type(relative_path_name)
+                    print(f'Extracting {relative_path_name}...')
+
                     result_queue.put('startfile', {
-                        'file_name': file_name,
+                        'file_name': relative_path_name,
                         'media_type': mime_type if mime_type else "application/octet-stream",
-                        'total_file_count': file_count,
                     })
 
                     while True:
