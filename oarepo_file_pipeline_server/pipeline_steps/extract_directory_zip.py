@@ -1,3 +1,12 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""ExtractDirectoryZip step."""
+
 import mimetypes
 import os
 import zipfile
@@ -10,11 +19,19 @@ from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class ExtractDirectoryZip(PipelineStep):
+    """This class is used to extract zip files from a specific folder."""
+
     produces_multiple_outputs = True
 
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
         """
-        Extracts a directory zip from the input zip file.
+        Extract zip files from a specific folder and yield individual extracted files.
+
+        :param inputs: An asynchronous iterator over `PipelineData` objects to be unzipped.
+        :param args: A dictionary of additional arguments (e.g. source_url, directory_name).
+        :return: An asynchronous iterator that yields the resulting `QueuePipelineData` objects.`.
+        :raises ValueError: If no input stream or source URL is provided, or if directory name is missing.
+        :raises Exception: Other exception raised by zipfile library.
         """
         if not inputs and not args:
             raise ValueError("No input or arguments were provided to PreviewZip step.")
@@ -45,6 +62,7 @@ class ExtractDirectoryZip(PipelineStep):
 
 
 def extract_directory_zip(input_stream, directory_name: str, result_queue: ResultQueue) -> None:
+    """Synchronously Extracts a specific directory from the ZIP file and sends the extracted files as chunks."""
     if not zipfile.is_zipfile(input_stream):
         raise ValueError("Input stream is not a valid ZIP file.")
 

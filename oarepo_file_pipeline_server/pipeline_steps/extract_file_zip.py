@@ -1,3 +1,12 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""ExtractFileZip step."""
+
 import mimetypes
 import os
 import zipfile
@@ -11,9 +20,17 @@ from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 
 class ExtractFileZip(PipelineStep):
+    """This class is used to extract zip file."""
+
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
         """
-        Extract specific file from zip archive.
+        Extract zip file and yield extracted file.
+
+        :param inputs: An asynchronous iterator over `PipelineData` objects to be unzipped.
+        :param args: A dictionary of additional arguments (e.g. source_url, file_name).
+        :return: An asynchronous iterator that yields the resulting `QueuePipelineData` objects.`.
+        :raises ValueError: If no input stream or source URL is provided, or if file name is missing.
+        :raises Exception: Other exception raised by zipfile library.
         """
         if not inputs and not args:
             raise ValueError("No input or arguments were provided to ExtractFile step.")
@@ -43,6 +60,7 @@ class ExtractFileZip(PipelineStep):
 
 
 def zip_open_file(input_stream, file_name: str, result_queue: ResultQueue) -> None:
+    """Synchronously Extracts a specific file from the ZIP file and sends the extracted file as chunks."""
     if not file_name:
         raise ValueError("No file name to extract was provided.")
 

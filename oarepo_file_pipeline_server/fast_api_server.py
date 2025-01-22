@@ -1,3 +1,11 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Fast api endpoints definition"""
 from fastapi import FastAPI, HTTPException, Response
 from starlette.responses import StreamingResponse
 from utils import ping_s3_storage, get_payload, get_pipeline_step_obj
@@ -24,18 +32,18 @@ async def process_pipeline(token_id):
         if jwe_token is None:
             raise HTTPException(status_code=404, detail="Content not found in cache.")
 
-        payload = get_payload(jwe_token)
+        payload = get_payload(jwe_token) # get payload with pipeline steps
 
         inputs = outputs = None
         multiple_outputs = False
         for pipeline_step in payload['pipeline_steps']:
-            pipeline_step_obj = get_pipeline_step_obj(pipeline_step['type'])()
+            pipeline_step_obj = get_pipeline_step_obj(pipeline_step['type'])() # initialize step
             print(f"Step {pipeline_step['type']}")
-            outputs = pipeline_step_obj.process(inputs, args=pipeline_step.get('arguments', []))
+            outputs = pipeline_step_obj.process(inputs, args=pipeline_step.get('arguments', [])) # initialize step with inputs and args
             multiple_outputs = multiple_outputs or pipeline_step_obj.produces_multiple_outputs
-            inputs = outputs
+            inputs = outputs # outputs from last step are now inputs to next step
 
-        if multiple_outputs:
+        if multiple_outputs: # multiple inputs in the last step, create zip
             create_zip = CreateZip()
             result = create_zip.process(inputs, {})
             zip_pipeline_data = await anext(result)

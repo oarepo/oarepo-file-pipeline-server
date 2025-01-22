@@ -1,3 +1,10 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
 """
 Class that represents pipeline data with data stored in asyncio.Queue in chunks.
 """
@@ -9,7 +16,8 @@ from typing import Self
 
 class QueuePipelineData(PipelineData):
     def __init__(self, queue: asyncio.Queue, metadata:dict) -> None:
-        self.queue = queue
+        """Initialize the QueuePipelineData with the given queue and metadata."""
+        self.queue = queue # queue with tuples ('chunk', bytes),('startfile', metadata), ('endfile', bytes)
         self.current_chunk: bytes | None = None
         self.current_chunk_index = 0
         self.current_chunk_size = 0
@@ -17,15 +25,40 @@ class QueuePipelineData(PipelineData):
         self.end_of_file = False
 
     def __aiter__(self) -> Self:
+        """
+        Prepare the object for asynchronous iteration.
+
+        This method returns the object itself, making it iterable in an asynchronous for loop.
+        """
         return self
 
     async def __anext__(self) -> bytes:
+        """
+        Asynchronously retrieve the next chunk of data from the queue.
+
+        This method is used for asynchronous iteration (e.g., within an `async for` loop).
+        If no more data is available, it raises a `StopAsyncIteration` exception.
+
+        :return: A chunk of data (65000 bytes).
+        :raises StopAsyncIteration: If there is no more data to read.
+        """
         chunk = await self.read(65000)
         if not chunk:
             raise StopAsyncIteration
         return chunk
 
     async def read(self, n: int = -1) -> bytes:
+        """
+        Asynchronously read a specific number of bytes from the queue.
+
+        If `n == -1`, it reads all data until the end of the file. It also handles reading
+        in chunks and processing the current chunk of data.
+
+        :param n: The number of bytes to read. Defaults to reading the whole stream if `n` is -1.
+        :return: A chunk of data as bytes.
+        :raises ValueError: If an unsupported chunk type is encountered.
+        :raises Exception: If there is an error while processing the data chunk.
+        """
         if self.end_of_file:
             return b''
         if n == -1:
@@ -60,12 +93,20 @@ class QueuePipelineData(PipelineData):
 
     @property
     def metadata(self) -> dict:
-        """Property holding metadata like file_name, media_type, etc."""
+        """
+        Property holding metadata like file_name, media_type, etc.
+
+        :return: The metadata dictionary.
+        """
         return self._metadata
 
     @metadata.setter
     def metadata(self, value: dict) -> None:
-        """Setter for metadata."""
+        """
+        Setter for updating metadata.
+
+        :param value: A dictionary with new metadata values.
+        """
         self._metadata.update(value)
 
 

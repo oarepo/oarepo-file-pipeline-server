@@ -1,3 +1,12 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""PreviewPicture step"""
+
 import io
 from typing import AsyncIterator
 
@@ -11,7 +20,19 @@ from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class PreviewPicture(PipelineStep):
+    """This class is used to preview picture."""
+
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+        """
+        Process picture and yield picture data..
+
+        :param inputs: An asynchronous iterator over `PipelineData` objects.
+        :param args: A dictionary of additional arguments (e.g. source_url, max_width, max_height).
+        :return: An asynchronous iterator that yields the resulting `QueuePipelineData` object.`.
+        :raises ValueError: If no input stream or source URL is provided, or if max_width or max_height is missing.
+        :raises Exception: Other exception raised by PIL library.
+        """
+
         if inputs is None and not args:
             raise ValueError("No input or arguments were provided to PreviewPicture step.")
         if inputs:
@@ -42,6 +63,7 @@ class PreviewPicture(PipelineStep):
 
 
 def image_open(input_stream, max_height: int, max_width: int, result_queue: ResultQueue) -> None:
+    """Synchronously Open picture, resize if required and sends the extracted picture as chunks."""
     if max_height is None and max_width is None:
         raise ValueError("No max height and no max width provided.")
 

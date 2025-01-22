@@ -1,11 +1,18 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""PreviewZip step"""
+
 import io
 import json
 import mimetypes
 import zipfile
 from datetime import datetime
 from typing import AsyncIterator
-
-import aiohttp
 
 from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, ResultQueue, read_result
 from oarepo_file_pipeline_server.pipeline_data.bytes_pipeline_data import BytesPipelineData
@@ -14,7 +21,19 @@ from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class PreviewZip(PipelineStep):
+    """This class is used to preview zip."""
+
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+        """
+        Extract zip file and yield extracted file.
+
+        :param inputs: An asynchronous iterator over `PipelineData` objects.
+        :param args: A dictionary of additional arguments (e.g. source_url).
+        :return: An asynchronous iterator that yields the resulting `BytesPipelineData`.
+        :raises ValueError: If no input stream or source URL is provided, or if input is not valid zip file.
+        :raises Exception: Other exception raised by zipfile library.
+        """
+
         if inputs is None and not args:
             raise ValueError("No input or arguments were provided to PreviewZip step.")
         if inputs:
@@ -34,6 +53,7 @@ class PreviewZip(PipelineStep):
 
 
 def zip_namelist(input_stream, result_queue: ResultQueue) -> list:
+    """Synchronously Open ZIP, get information about files and return dumped json object."""
     if not zipfile.is_zipfile(input_stream):
         raise ValueError("Input stream is not a valid ZIP file.")
 
