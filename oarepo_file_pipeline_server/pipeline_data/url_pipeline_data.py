@@ -84,7 +84,7 @@ class UrlPipelineData(PipelineData):
             pass
 
         print(f'{self._current_pos=}, want to seek: {offset=}, {whence=}')
-        if offset == self._current_pos:
+        if offset == self._current_pos and self._current_reader is not None:
             print("Not seeking, already at the offset")
             return
 
