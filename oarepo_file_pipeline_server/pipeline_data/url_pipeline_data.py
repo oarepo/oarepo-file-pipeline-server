@@ -1,3 +1,10 @@
+#
+# Copyright (C) 2025 CESNET z.s.p.o.
+#
+# oarepo-file-pipeline-server is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
 """
 Class that represents pipeline data with data read from URL stream
 """
@@ -14,7 +21,7 @@ from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class UrlPipelineData(PipelineData):
     def __init__(self, url: str, session: aiohttp.ClientSession) -> None:
-        """Constructor for UrlPipelineData"""
+        """Initialize the UrlPipelineData object with a URL and an aiohttp ClientSession."""
         self._url = url
         self._current_reader = None
         self._response = None
@@ -23,11 +30,27 @@ class UrlPipelineData(PipelineData):
         self._session = session
         self._metadata = dict()
 
-    def __aiter__(self) -> Self :
+    def __aiter__(self) -> Self:
+        """
+        Prepare the object for asynchronous iteration.
+
+        This method makes the object iterable in an asynchronous loop (e.g.,
+        `async for` loop).
+
+        :return: The UrlPipelineData instance itself.
+        """
         return self
 
     async def __anext__(self) -> bytes:
-        """Asynchronously iterate through 65000 Kb of data"""
+        """
+        Asynchronously retrieve the next chunk of data from the URL stream.
+
+        This method is used for asynchronous iteration, retrieving chunks of
+        data as specified by the `read()` method.
+
+        :return: A chunk of data (65000 bytes).
+        :raises StopAsyncIteration: If there is no more data to read.
+        """
         chunk =  await self.read(65000)
 
         if not chunk:
@@ -40,11 +63,19 @@ class UrlPipelineData(PipelineData):
         Get the input stream.
         :return: The stream object.
         """
-
         return self._current_reader
 
     async def read(self, size=-1) -> bytes:
-        """"Read size amount of bytes from stream"""
+        """
+        Asynchronously read a specific number of bytes from the URL stream.
+
+        If the `size` is -1, it will read the entire remaining stream. The data is
+        read in chunks, and the method will handle any partial reads and return
+        the accumulated bytes.
+
+        :param size: The number of bytes to read. If -1, it will read until EOF.
+        :return: A chunk of data (bytes).
+        """
         if not self._current_reader:
             await self.seek(0)
 
@@ -68,8 +99,16 @@ class UrlPipelineData(PipelineData):
 
         return ret.getvalue()
 
-    async def seek(self, offset, whence=0):
-        """Seek with offset and whence in strem."""
+    async def seek(self, offset, whence=0) -> None:
+        """
+        Seek to a specific position in the stream.
+
+        This method allows moving to a certain byte position in the stream.
+        It supports different modes for the offset, such as absolute or relative.
+
+        :param offset: The byte position to seek to.
+        :param whence: Specifies how the offset is interpreted. Default is 0 (absolute).
+        """
         if whence==2 and offset==0:
             self._current_pos = await self.get_size()
             self._current_reader = None
@@ -83,11 +122,12 @@ class UrlPipelineData(PipelineData):
         else:
             pass
 
-        print(f'{self._current_pos=}, want to seek: {offset=}, {whence=}')
+        # optimization that stays on the same position if already there, therefore does not open another connection
         if offset == self._current_pos and self._current_reader is not None:
             print("Not seeking, already at the offset")
             return
 
+        # optimization that read some bytes instead seeking, therefore does not open another connection
         if (offset - self._current_pos > 0) and (offset - self._current_pos < 1000):
             print(f"Reading instead of seeking, difference is: {offset - self._current_pos}")
             await self.read(offset-self._current_pos)
@@ -96,10 +136,9 @@ class UrlPipelineData(PipelineData):
         if self._response:
             await self._response.__aexit__(None, None, None)
 
-        # TODO Check status code etc
         self._response = await self._session.get(self._url, headers={
             'range': f'bytes={offset}-',
-            'Accept-Encoding': "identity"
+            'Accept-Encoding': "identity" # ensure file is not zipped
         })
 
         if self._response.status != 206:
@@ -111,20 +150,39 @@ class UrlPipelineData(PipelineData):
 
     @property
     def metadata(self) -> dict:
-        """Property holding metadata like file_name, media_type, etc."""
+        """
+        Property holding metadata like file_name, media_type, etc.
+
+        :return: The metadata dictionary.
+        """
         return self._metadata
 
     @metadata.setter
     def metadata(self, value: dict) -> None:
-        """Setter for metadata."""
+        """
+        Setter for updating metadata.
+
+        :param value: A dictionary with new metadata values.
+        """
         self._metadata.update(value)
 
     async def tell(self) -> int:
-        """Tell current position in the stream"""
+        """
+        Return the current position in the stream.
+
+        :return: The current position (in bytes) within the stream.
+        """
         return self._current_pos
 
     async def get_size(self) -> int:
-        """Get file size"""
+        """
+        Get the total size of the file being read from the URL.
+
+        This method makes a request to the server to retrieve the content range
+        and size of the file. It caches the size after the first request for efficiency.
+
+        :return: The total size of the file in bytes.
+        """
         if self._size is not None:
             return self._size
 
