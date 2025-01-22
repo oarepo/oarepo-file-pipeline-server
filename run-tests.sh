@@ -6,10 +6,6 @@ set -e
 
 OAREPO_VERSION="${OAREPO_VERSION:-12}"
 
-if [ "$0" = "$BASH_SOURCE" ]; then
-  trap "clean_up" EXIT
-fi
-
 export VENV=".venv"
 
 setup_test_venv(){
