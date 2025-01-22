@@ -1,18 +1,11 @@
-from oarepo_file_pipeline_server.pipeline_steps.preview_picture import PreviewPicture
-from oarepo_file_pipeline_server.pipeline_steps.preview_zip import PreviewZip
-from oarepo_file_pipeline_server.pipeline_steps.create_zip import CreateZip
-# add crypt4gh
-from oarepo_file_pipeline_server.pipeline_steps.extract_directory_zip import ExtractDirectoryZip
-from oarepo_file_pipeline_server.pipeline_steps.extract_file_zip import ExtractFileZip
-
 from joserfc.jwk import RSAKey
 
 STEP_DEFINITIONS = {
-    'preview_zip': PreviewZip,
-    'preview_picture': PreviewPicture,
-    'create_zip': CreateZip,
-    'extract_directory_zip': ExtractDirectoryZip,
-    'extract_file_zip': ExtractFileZip,
+    'preview_zip': "oarepo_file_pipeline_server.pipeline_steps.preview_zip.PreviewZip",
+    'preview_picture': "oarepo_file_pipeline_server.pipeline_steps.preview_picture.PreviewPicture",
+    'create_zip': "oarepo_file_pipeline_server.pipeline_steps.create_zip.CreateZip",
+    'extract_directory_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_directory_zip.ExtractDirectoryZip",
+    'extract_file_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_file_zip.ExtractFileZip",
     # 'crypt4gh' : Crypt4GH
 }
 

@@ -1,5 +1,4 @@
 import io
-from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest

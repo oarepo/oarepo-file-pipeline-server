@@ -1,10 +1,12 @@
+import importlib
+
 import aiohttp
 
 from oarepo_file_pipeline_server.proxies import s3_client
 from joserfc import jwe, jwt
 from oarepo_file_pipeline_server.config import server_private_key, repo_public_key, STEP_DEFINITIONS
 import time
-from invenio_base.utils import obj_or_import_string
+#from invenio_base.utils import obj_or_import_string
 from botocore.exceptions import ClientError
 import mimetypes
 import os
@@ -32,7 +34,13 @@ def get_pipeline_step_obj(name):
     if pipeline_step is None:
         raise ValueError(f"PIPELINE_STEP {name} is not defined")
 
-    pipeline_step_obj = obj_or_import_string(pipeline_step)
+    if isinstance(pipeline_step, str):
+        module_name, class_name = pipeline_step.rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        pipeline_step_obj = getattr(module, class_name)
+    else:
+        pipeline_step_obj = pipeline_step
+
     return pipeline_step_obj
 
 def ping_s3_storage():

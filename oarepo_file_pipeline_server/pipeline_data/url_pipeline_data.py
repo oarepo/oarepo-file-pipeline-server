@@ -83,8 +83,15 @@ class UrlPipelineData(PipelineData):
         else:
             pass
 
-        # TODO seek is here and want to seek there
         print(f'{self._current_pos=}, want to seek: {offset=}, {whence=}')
+        if offset == self._current_pos:
+            print("Not seeking, already at the offset")
+            return
+
+        if (offset - self._current_pos > 0) and (offset - self._current_pos < 1000):
+            print(f"Reading instead of seeking, difference is: {offset - self._current_pos}")
+            await self.read(offset-self._current_pos)
+            return
 
         if self._response:
             await self._response.__aexit__(None, None, None)
