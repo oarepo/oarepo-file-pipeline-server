@@ -1,4 +1,5 @@
 import io
+import json
 
 import aiohttp
 import pytest
@@ -21,9 +22,28 @@ async def test_preview_zip_success_from_url():
         )
 
         output = await anext(outputs)
-        assert output.metadata == {'media_type': 'text/plain'}
+        assert output.metadata == {'media_type': 'application/json'}
+        buffer = await output.read()
+        result = json.loads(buffer.decode('utf8'))
+        assert result == {
+            "test_zip/": {
+                "is_dir": True,
+                "file_size": 0,
+                "modified_time": "2024-12-23 16:21:22",
+                "compressed_size": 0,
+                "compress_type": 0,
+                "media_type": ""
+            },
+            "test_zip/test1.txt": {
+                "is_dir": False,
+                "file_size": 12,
+                "modified_time": "2024-12-23 16:21:38",
+                "compressed_size": 14,
+                "compress_type": 8,
+                "media_type": "text/plain"
+            }
+        }
 
-        assert await output.read() == b'test_zip/\ntest_zip/test1.txt'
         assert await output.read() == b''
 
         with pytest.raises(StopAsyncIteration):
@@ -46,9 +66,31 @@ async def test_preview_zip_success_from_inputs_bytes():
     outputs = step.process(inputs, args={})
     output = await anext(outputs)
 
-    assert output.metadata == {'media_type': 'text/plain'}
-    assert await output.read() == b'test_zip/\ntest_zip/test1.txt'
+    assert output.metadata == {'media_type': 'application/json'}
+
+    buffer = await output.read()
+    result = json.loads(buffer.decode('utf8'))
+    assert result == {
+        "test_zip/": {
+            "is_dir": True,
+            "file_size": 0,
+            "modified_time": "2024-12-23 16:21:22",
+            "compressed_size": 0,
+            "compress_type": 0,
+            "media_type": ""
+        },
+        "test_zip/test1.txt": {
+            "is_dir": False,
+            "file_size": 12,
+            "modified_time": "2024-12-23 16:21:38",
+            "compressed_size": 14,
+            "compress_type": 8,
+            "media_type": "text/plain"
+        }
+    }
+
     assert await output.read() == b''
+
 
     with pytest.raises(StopAsyncIteration):
         await anext(outputs)
@@ -68,8 +110,28 @@ async def test_preview_zip_success_from_inputs_url():
         outputs = step.process(inputs, args={})
         output = await anext(outputs)
 
-        assert output.metadata == {'media_type': 'text/plain'}
-        assert await output.read() == b'test_zip/\ntest_zip/test1.txt'
+        assert output.metadata == {'media_type': 'application/json'}
+        buffer = await output.read()
+        result = json.loads(buffer.decode('utf8'))
+        assert result == {
+            "test_zip/": {
+                "is_dir": True,
+                "file_size": 0,
+                "modified_time": "2024-12-23 16:21:22",
+                "compressed_size": 0,
+                "compress_type": 0,
+                "media_type": ""
+            },
+            "test_zip/test1.txt": {
+                "is_dir": False,
+                "file_size": 12,
+                "modified_time": "2024-12-23 16:21:38",
+                "compressed_size": 14,
+                "compress_type": 8,
+                "media_type": "text/plain"
+            }
+        }
+
         assert await output.read() == b''
 
         with pytest.raises(StopAsyncIteration):

@@ -1,5 +1,8 @@
 import io
+import json
+import mimetypes
 import zipfile
+from datetime import datetime
 from typing import AsyncIterator
 
 import aiohttp
@@ -25,7 +28,8 @@ class PreviewZip(PipelineStep):
 
         results = await sync_stream_runner(zip_namelist, input_stream)
         namelist = await read_result(results)
-        output = BytesPipelineData({'media_type': 'text/plain'}, io.BytesIO("\n".join(namelist).encode("utf-8")))
+        print(namelist)
+        output = BytesPipelineData({'media_type': 'application/json'}, io.BytesIO(namelist.encode('utf-8')))
         yield output
 
 
@@ -33,5 +37,19 @@ def zip_namelist(input_stream, result_queue: ResultQueue) -> list:
     if not zipfile.is_zipfile(input_stream):
         raise ValueError("Input stream is not a valid ZIP file.")
 
+    detailed_info = {}
     with zipfile.ZipFile(input_stream, 'r') as zip_file:
-       return zip_file.namelist()
+       for info in zip_file.infolist():
+           mime_type, _ = mimetypes.guess_type(info.filename)
+
+           file_info = {
+               'is_dir': info.is_dir(),
+               'file_size': info.file_size,
+               'modified_time': datetime(*info.date_time).strftime('%Y-%m-%d %H:%M:%S'),
+               'compressed_size': info.compress_size,
+               'compress_type': info.compress_type,
+               'media_type': mime_type if mime_type and not info.is_dir() else ""
+           }
+           detailed_info[info.filename] = file_info
+
+    return json.dumps(detailed_info, indent=4)
