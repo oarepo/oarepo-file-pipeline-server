@@ -6,10 +6,10 @@ STEP_DEFINITIONS = {
     'create_zip': "oarepo_file_pipeline_server.pipeline_steps.create_zip.CreateZip",
     'extract_directory_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_directory_zip.ExtractDirectoryZip",
     'extract_file_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_file_zip.ExtractFileZip",
-    # 'crypt4gh' : Crypt4GH
+    'crypt4gh': "oarepo_file_pipeline_server.pipeline_steps.crypt4gh.Crypt4GH"
 }
 
-# KEYS used for testing
+# KEYS used only for testing
 server_private_key="""
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCzy+bo4XI6k/I/
@@ -65,3 +65,16 @@ INVENIO_S3_ACCESS_KEY="aa-nr_docs-aa"
 
 # must be at least 8 characters
 INVENIO_S3_SECRET_KEY="aaa-nr_docs-aaa"
+
+# USED ONLY FOR TESTING
+server_key_priv_c4gh = """
+-----BEGIN CRYPT4GH PRIVATE KEY-----
+YzRnaC12MQAEbm9uZQAEbm9uZQAg5aLYHVFzZxtzr0UqQDBwyQBu7jUYsC/bkFR5TnVjSaQ=
+-----END CRYPT4GH PRIVATE KEY-----
+"""
+
+server_key_pub_c4gh = """
+-----BEGIN CRYPT4GH PUBLIC KEY-----
+bzoBg9BgjnAkesJ5pDiSoHaObr7GNi627advrQ8oaGM=
+-----END CRYPT4GH PUBLIC KEY-----
+"""
