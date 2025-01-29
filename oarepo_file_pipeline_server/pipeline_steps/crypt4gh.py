@@ -5,10 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-# TODO
+"""Crypt4GH Step."""
 from typing import AsyncIterator
-
-import crypt4gh
 
 from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, ResultQueue
 from oarepo_file_pipeline_server.pipeline_data.async_writer import AsyncWriter
@@ -19,7 +17,16 @@ from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 
 
 class Crypt4GH(PipelineStep):
+    """Pipeline step to add a new recipient to Crypt4GH file.."""
     async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+        """
+        Add new recipient to Crypt4GH file.
+
+        :param inputs: An asynchronous iterator over `PipelineData` objects to be zipped.
+        :param args:A dictionary of additional arguments (e.g. source_url, recipient_pub).
+        :return: An asynchronous iterator that yields the resulting `QueuePipelineData` objects.
+        :raises ValueError: If no input data/source_url/recipient_pub is provided.
+        """
         if not inputs and not args:
             raise ValueError("No input data or arguments were provided to Crypt4GH step.")
         if inputs:
@@ -48,8 +55,8 @@ class Crypt4GH(PipelineStep):
 
 
 def crypt4gh_add_recipient(input_stream, recipient_pub: str, result_queue: ResultQueue):
+    """Add new recipient to Crypt4GH file."""
     from oarepo_c4gh import Crypt4GHWriter, AddRecipientFilter, C4GHKey, Crypt4GH
-    from oarepo_c4gh.key.key_collection import KeyCollection
     from oarepo_file_pipeline_server.config import server_key_priv_c4gh
 
     if not recipient_pub:
@@ -61,7 +68,11 @@ def crypt4gh_add_recipient(input_stream, recipient_pub: str, result_queue: Resul
     crypt4gh = Crypt4GH(server_key, input_stream)
     filter4gh = AddRecipientFilter(crypt4gh, recipient_pub.public_key)
 
-    with AsyncWriter({}, result_queue) as async_writer:
+    metadata = {
+        'media_type': 'application/octet-stream',
+        'file_name': 'crypt4gh.c4gh',
+    }
+    with AsyncWriter(metadata, result_queue) as async_writer:
         writer = Crypt4GHWriter(filter4gh, async_writer)
         writer.write()
 

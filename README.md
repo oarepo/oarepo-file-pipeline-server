@@ -125,6 +125,12 @@ Metadata will contain:
 2) `media_type` The MIME type of the resulting file, which is set to `application/zip`
 3) `headers` Contains a `Content-Disposition` header, which includes the name of the ZIP file for download 
 
+#### Crypt4GH
+Pipeline step to add a new recipient to Crypt4GH file.
+
+Metadata will contain:
+1) `file_name` The name of the resulting Crypt4GH file, which is hardcoded as `crypt4gh.c4gh`
+2) `media_type` The MIME type of the resulting file, which is set to `application/octet-stream`
 
 ## Example usages
 Pipeline will contain only 1 step (PreviewZip)
