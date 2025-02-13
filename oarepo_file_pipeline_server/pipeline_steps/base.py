@@ -12,12 +12,23 @@ from typing import AsyncIterator
 
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
+from typing import AsyncIterator
+
+from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
+
+UNKNOWN_FILE_COUNT = -1
+
+class StepResults:
+    def __init__(self, file_count: int, results: AsyncIterator[PipelineData]):
+        self.file_count = file_count
+        self.results = results
+
+
 class PipelineStep(abc.ABC):
     """Abstract base class for a step in a processing pipeline."""
-    produces_multiple_outputs: bool = False
 
     @abc.abstractmethod
-    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> StepResults:
         """
         Process the input data and yield the output data.
 

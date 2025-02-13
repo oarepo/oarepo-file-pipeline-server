@@ -17,13 +17,13 @@ from typing import AsyncIterator
 from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, ResultQueue, read_result
 from oarepo_file_pipeline_server.pipeline_data.bytes_pipeline_data import BytesPipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
-from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
+from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepResults
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class PreviewZip(PipelineStep):
     """This class is used to preview zip."""
 
-    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> StepResults:
         """
         Extract zip file and yield extracted file.
 
@@ -46,10 +46,12 @@ class PreviewZip(PipelineStep):
             raise ValueError("No input or source_link were provided.")
 
         results = await sync_stream_runner(zip_namelist, input_stream)
-        namelist = await read_result(results)
-        print(namelist)
-        output = BytesPipelineData({'media_type': 'application/json'}, io.BytesIO(namelist.encode('utf-8')))
-        yield output
+        namelist = await read_result(results.queue)
+
+        async def get_results() -> AsyncIterator[PipelineData]:
+            yield BytesPipelineData({'media_type': 'application/json'}, io.BytesIO(namelist.encode('utf-8')))
+
+        return StepResults(1, get_results())
 
 
 def zip_namelist(input_stream, result_queue: ResultQueue) -> list:

@@ -13,7 +13,7 @@ async def test_preview_zip_success_from_url():
     step = PreviewZip()
 
     async with aiohttp.ClientSession() as session:
-        outputs = step.process(
+        outputs = await step.process(
             None,
             args={
                 "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zip",
@@ -21,7 +21,7 @@ async def test_preview_zip_success_from_url():
             }
         )
 
-        output = await anext(outputs)
+        output = await anext(outputs.results)
         assert output.metadata == {'media_type': 'application/json'}
         buffer = await output.read()
         result = json.loads(buffer.decode('utf8'))
@@ -47,7 +47,7 @@ async def test_preview_zip_success_from_url():
         assert await output.read() == b''
 
         with pytest.raises(StopAsyncIteration):
-            await anext(outputs)
+            await anext(outputs.results)
 
 
 
@@ -63,8 +63,8 @@ async def test_preview_zip_success_from_inputs_bytes():
     inputs = get_data()
     step = PreviewZip()
 
-    outputs = step.process(inputs, args={})
-    output = await anext(outputs)
+    outputs = await step.process(inputs, args={})
+    output = await anext(outputs.results)
 
     assert output.metadata == {'media_type': 'application/json'}
 
@@ -93,7 +93,7 @@ async def test_preview_zip_success_from_inputs_bytes():
 
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_success_from_inputs_url():
@@ -107,8 +107,8 @@ async def test_preview_zip_success_from_inputs_url():
         step = PreviewZip()
         inputs = get_data()
 
-        outputs = step.process(inputs, args={})
-        output = await anext(outputs)
+        outputs = await step.process(inputs, args={})
+        output = await anext(outputs.results)
 
         assert output.metadata == {'media_type': 'application/json'}
         buffer = await output.read()
@@ -135,7 +135,7 @@ async def test_preview_zip_success_from_inputs_url():
         assert await output.read() == b''
 
         with pytest.raises(StopAsyncIteration):
-            await anext(outputs)
+            await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_invalid_inputs():
@@ -148,25 +148,25 @@ async def test_preview_zip_invalid_inputs():
         yield BytesPipelineData({'media_type': 'application/zip'}, text_stream)
 
     with pytest.raises(ValueError, match="Input stream is not a valid ZIP file."):
-        outputs = step.process(get_data(), args={})
-        await anext(outputs)
+        outputs = await step.process(get_data(), args={})
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_fail_no_inputs_no_args():
     step = PreviewZip()
 
     with pytest.raises(ValueError, match="No input or arguments were provided to PreviewZip step."):
-        async for _ in step.process(None, args={}):
+        async for _ in (await step.process(None, args={})).results:
             pass
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_invalid_url():
     step = PreviewZip()
     with pytest.raises(ValueError):
-        outputs = step.process(
+        outputs = await step.process(
             None,
             args={
                 "source_url": "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zp",
             }
         )
-        await anext(outputs)
+        await anext(outputs.results)

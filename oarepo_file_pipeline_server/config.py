@@ -4,8 +4,7 @@ STEP_DEFINITIONS = {
     'preview_zip': "oarepo_file_pipeline_server.pipeline_steps.preview_zip.PreviewZip",
     'preview_picture': "oarepo_file_pipeline_server.pipeline_steps.preview_picture.PreviewPicture",
     'create_zip': "oarepo_file_pipeline_server.pipeline_steps.create_zip.CreateZip",
-    'extract_directory_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_directory_zip.ExtractDirectoryZip",
-    'extract_file_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_file_zip.ExtractFileZip",
+    'extract_zip': "oarepo_file_pipeline_server.pipeline_steps.extract_directory_zip.ExtractZip",
     'crypt4gh': "oarepo_file_pipeline_server.pipeline_steps.crypt4gh.Crypt4GH"
 }
 

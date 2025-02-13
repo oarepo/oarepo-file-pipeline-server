@@ -9,7 +9,7 @@
 import io
 from typing import AsyncIterator, Self
 
-from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
+from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepResults
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 from stat import S_IFREG
 from stream_zip import ZIP_64, async_stream_zip
@@ -127,7 +127,7 @@ class ZipPipelineData(PipelineData):
 
 class CreateZip(PipelineStep):
     """Pipeline step to create a ZIP file from multiple input data streams."""
-    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> StepResults:
         """
         Create a zip file from the inputs provided by the pipeline.
 
@@ -140,8 +140,12 @@ class CreateZip(PipelineStep):
             raise ValueError("No input data provided to CreateZip step.")
         assert not isinstance(inputs, PipelineData)
 
-        yield ZipPipelineData(inputs, metadata={
+        async def get_results():
+            yield ZipPipelineData(inputs, metadata={
             'file_name' : "created.zip",
             'media_type': 'application/zip',
             'headers': {'Content-Disposition': f'attachment; filename="created.zip"',}}
         )
+
+        return StepResults(1, get_results())
+

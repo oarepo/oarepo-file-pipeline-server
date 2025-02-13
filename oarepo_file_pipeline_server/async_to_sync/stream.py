@@ -8,6 +8,7 @@
 """Class that wraps asynchronous stream into synchronous"""
 
 import asyncio
+import sys
 
 
 class AsyncToSyncStream:
@@ -26,7 +27,11 @@ class AsyncToSyncStream:
 
     def async_to_sync(self, awaitable):
         """Converts an asynchronous operation to a synchronous one by running it in the event loop"""
-        return asyncio.run_coroutine_threadsafe(awaitable, self.event_loop).result()
+        try:
+            return asyncio.run_coroutine_threadsafe(awaitable, self.event_loop).result()
+        except:
+            print("ASYNC TO SYNC ERROR", awaitable, file=sys.stderr, flush=True)
+            raise
 
 
     def tell(self):

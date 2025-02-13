@@ -16,13 +16,13 @@ from PIL import Image
 from oarepo_file_pipeline_server.async_to_sync.sync_runner import sync_stream_runner, ResultQueue
 from oarepo_file_pipeline_server.pipeline_data.queue_pipeline_data import QueuePipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
-from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
+from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepResults
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class PreviewPicture(PipelineStep):
     """This class is used to preview picture."""
 
-    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> StepResults:
         """
         Process picture and yield picture data..
 
@@ -37,7 +37,6 @@ class PreviewPicture(PipelineStep):
             raise ValueError("No input or arguments were provided to PreviewPicture step.")
         if inputs:
             assert not isinstance(inputs, PipelineData)
-
             input_stream = await anext(inputs)
         elif args and "source_url" in args:
             from oarepo_file_pipeline_server.utils import http_session
@@ -48,24 +47,34 @@ class PreviewPicture(PipelineStep):
         height = args.get("max_height")
         width = args.get("max_width")
         results = await sync_stream_runner(image_open, input_stream, height, width)
+
         item_type, item_value = await results.get()
-        print("Returned from image_open")
+        if item_type != "file_count":
+            results.stop()
+            raise ValueError(f"Implementation error, expected 'file_count', got {item_value}")
 
-        while item_type != 'complete':
-            if item_type == 'error':
-                raise item_value
-
-            if item_type != 'startfile':
-                raise ValueError(f"Implementation error: {item_type}")
-
-            yield QueuePipelineData(results, metadata=item_value)
+        async def get_results() -> AsyncIterator[PipelineData]:
             item_type, item_value = await results.get()
+            while item_type != 'complete':
+                if item_type == 'error':
+                    results.stop()
+                    raise item_value
 
+                if item_type != 'startfile':
+                    results.stop()
+                    raise ValueError(f"Implementation error: {item_type}")
+
+                yield QueuePipelineData(results, metadata=item_value)
+                item_type, item_value = await results.get()
+
+        return StepResults(1, get_results())
 
 def image_open(input_stream, max_height: int, max_width: int, result_queue: ResultQueue) -> None:
     """Synchronously Open picture, resize if required and sends the extracted picture as chunks."""
     if max_height is None and max_width is None:
         raise ValueError("No max height and no max width provided.")
+
+    result_queue.put('file_count', 1)
 
     buffer = io.BytesIO(input_stream.read())
     thumbnailed = False

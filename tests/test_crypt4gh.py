@@ -48,8 +48,8 @@ async def test_crypt4gh_success_from_input_bytes():
               'r') as key_file:
         key = key_file.read()
 
-    outputs = step.process(inputs, args={'recipient_pub': key})
-    output = await anext(outputs)
+    outputs = await step.process(inputs, args={'recipient_pub': key})
+    output = await anext(outputs.results)
     buffer = await output.read()
 
     result = subprocess.run(
@@ -104,8 +104,8 @@ async def test_crypt4gh_success_from_inputs_url():
                   'r') as key_file:
             key = key_file.read()
 
-        outputs = step.process(inputs, args={'recipient_pub': key})
-        output = await anext(outputs)
+        outputs = await step.process(inputs, args={'recipient_pub': key})
+        output = await anext(outputs.results)
         buffer = await output.read()
 
         result = subprocess.run(
@@ -152,8 +152,8 @@ async def test_crypt4gh_success_from_url():
               'r') as key_file:
         key = key_file.read()
 
-    outputs = step.process(None, args={'recipient_pub': key, 'source_url':'https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/hello.txt.c4gh'})
-    output = await anext(outputs)
+    outputs = await step.process(None, args={'recipient_pub': key, 'source_url':'https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/hello.txt.c4gh'})
+    output = await anext(outputs.results)
     buffer = await output.read()
 
     result = subprocess.run(
@@ -171,25 +171,25 @@ async def test_crypt4gh_success_from_url():
 @pytest.mark.asyncio
 async def test_crypt4gh_fail_no_input_no_args():
     step = Crypt4GH()
-    outputs = step.process(None, args={})
     with pytest.raises(ValueError, match="No input data or arguments were provided to Crypt4GH step."):
+        outputs = await step.process(None, args={})
         output = await anext(outputs)
         buffer = await output.read()
 
 @pytest.mark.asyncio
 async def test_crypt4gh_fail_no_source_url():
     step = Crypt4GH()
-    outputs = step.process(None, args={'recipient_pub': "something"})
     with pytest.raises(ValueError, match="No input nor source_url were provided."):
-        output = await anext(outputs)
+        outputs = await step.process(None, args={'recipient_pub': "something"})
+        output = await anext(outputs.results)
         buffer = await output.read()
 
 @pytest.mark.asyncio
 async def test_crypt4gh_fail_no_recipient_pub():
     step = Crypt4GH()
-    outputs = step.process(None, args={'source_url':"something", 'recipient_pub': ""})
     with pytest.raises(ValueError, match="No recipient public key was provided."):
-        output = await anext(outputs)
+        outputs = await step.process(None, args={'source_url':"something", 'recipient_pub': ""})
+        output = await anext(outputs.results)
         buffer = await output.read()
 
 

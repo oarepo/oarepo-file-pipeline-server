@@ -8,6 +8,8 @@
 """Logic of converting sync stream to async stream."""
 
 import asyncio
+import ctypes
+import sys
 import threading
 from oarepo_file_pipeline_server.async_to_sync.stream import AsyncToSyncStream
 
@@ -23,10 +25,33 @@ class ResultQueue:
 
     def put(self, result_type, result_value):
         """Places a result into the queue. Runs the operation asynchronously in the event loop."""
-        asyncio.run_coroutine_threadsafe(self.queue.put((result_type, result_value)),
+        try:
+            asyncio.run_coroutine_threadsafe(self.queue.put((result_type, result_value)),
                                          self.loop).result()
+        except:
+            print('putting result', result_type, file=sys.stderr, flush=True)
+            raise
 
-async def sync_runner(sync_function, *args,queue_size=1, **kwargs) -> asyncio.Queue:
+class StoppableQueue:
+    def __init__(self, queue: asyncio.Queue, thread_id):
+        self.queue = queue
+        self.thread_id = thread_id
+
+    async def get(self):
+        return await self.queue.get()
+
+    def stop(self):
+        if hasattr(self.queue, 'shutdown'):
+            self.queue.shutdown(immediate=True)
+        print("Stopping thread", file=sys.stderr, flush=True)
+        thread_id = self.thread_id
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
+                                                         ctypes.py_object(SystemExit))
+        if res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+            print('Exception raise failure', file=sys.stderr, flush=True)
+
+async def sync_runner(sync_function, *args,queue_size=1, **kwargs) -> StoppableQueue:
     """
     Runs a synchronous function in a separate thread and returns an asyncio.Queue
     that can be used to fetch the result asynchronously.
@@ -51,8 +76,10 @@ async def sync_runner(sync_function, *args,queue_size=1, **kwargs) -> asyncio.Qu
             result_queue.put('error', e)
 
     # Start the helper function in a separate thread
-    threading.Thread(target=helper_fn).start()
-    return q
+    print(f'before creating thread, {sync_function}', file=sys.stderr, flush=True)
+    thread = threading.Thread(target=helper_fn)
+    thread.start()
+    return StoppableQueue(q, thread.native_id)
 
 async def read_result(queue: asyncio.Queue):
     """Helper function that reads the result from the queue, raises exception if necessary or return the complete result."""
@@ -65,7 +92,7 @@ async def read_result(queue: asyncio.Queue):
     else:
         raise ValueError(f'Unknown item type: {item_type}')
 
-async def sync_stream_runner(sync_function, stream, *args, **kwargs) -> asyncio.Queue:
+async def sync_stream_runner(sync_function, stream, *args, **kwargs) -> StoppableQueue:
     """
     A helper function to run a synchronous function that takes an async stream,
     converting the async stream to a synchronous stream using `AsyncToSyncStream`.

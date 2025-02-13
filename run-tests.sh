@@ -25,6 +25,7 @@ setup_test_venv(){
   pip install stream-zip
   pip install pillow
   pip install pytest-random-order
+  pip install oarepo-crypt4gh
   echo "Testing venv is set up"
 )
 }
@@ -40,8 +41,7 @@ if [ "$0" = "$BASH_SOURCE" ]; then
     run_tests
 else
     echo "This script includes the following functions:"
-    echo "5. setup_test_venv: Sets up a virtual environment for testing."
-    echo "6. run_tests: Runs pytest."
-    echo ""
+    echo "1. setup_test_venv: Sets up a virtual environment for testing."
+    echo "2. run_tests: Runs pytest."
     echo "To execute the script, run it directly: ./run-tests.sh"
 fi

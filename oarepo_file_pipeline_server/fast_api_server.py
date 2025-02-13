@@ -6,8 +6,13 @@
 # details.
 #
 """Fast api endpoints definition"""
+from typing import AsyncIterator
+
 from fastapi import FastAPI, HTTPException, Response
 from starlette.responses import StreamingResponse
+
+from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
+from oarepo_file_pipeline_server.pipeline_steps.base import StepResults
 from utils import ping_s3_storage, get_payload, get_pipeline_step_obj
 from proxies import redis_client
 from oarepo_file_pipeline_server.pipeline_steps.create_zip import CreateZip
@@ -34,23 +39,27 @@ async def process_pipeline(token_id):
 
         payload = get_payload(jwe_token) # get payload with pipeline steps
 
-        inputs = outputs = None
-        multiple_outputs = False
+        inputs: AsyncIterator[PipelineData] | None = None
+        outputs: StepResults | None = None
+
+        assert len(payload['pipeline_steps']) > 0
+
         for pipeline_step in payload['pipeline_steps']:
             pipeline_step_obj = get_pipeline_step_obj(pipeline_step['type'])() # initialize step
             print(f"Step {pipeline_step['type']}")
-            outputs = pipeline_step_obj.process(inputs, args=pipeline_step.get('arguments', [])) # initialize step with inputs and args
-            multiple_outputs = multiple_outputs or pipeline_step_obj.produces_multiple_outputs
-            inputs = outputs # outputs from last step are now inputs to next step
+            outputs = await pipeline_step_obj.process(inputs, args=pipeline_step.get('arguments', [])) # initialize step with inputs and args
+            inputs = outputs.results # outputs from last step are now inputs to next step
 
-        if multiple_outputs: # multiple inputs in the last step, create zip
+        assert outputs, "Outputs can not be empty"
+
+        if outputs.file_count != 1: # multiple inputs in the last step, create zip
             create_zip = CreateZip()
-            result = create_zip.process(inputs, {})
-            zip_pipeline_data = await anext(result)
+            result: StepResults = await create_zip.process(inputs, {})
+            zip_pipeline_data = await anext(result.results)
             return StreamingResponse(zip_pipeline_data, media_type=zip_pipeline_data.metadata['media_type'],
                                      headers=zip_pipeline_data.metadata.get('headers', {}))
 
-        output = await anext(outputs)
+        output = await anext(outputs.results)
         return StreamingResponse(output, media_type=output.metadata['media_type'],
                                  headers=output.metadata.get('headers', {}))
 

@@ -28,11 +28,11 @@ async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_jpg_fro
         picture.save(picture_buffer, format=picture.format)
 
 
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 800,
         'max_height': 600
     })
-    output = await anext(outputs)
+    output = await anext(outputs.results)
 
     assert output.metadata['media_type'] == 'image/jpeg'
     assert output.metadata['width'] == 800
@@ -42,7 +42,7 @@ async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_jpg_fro
     assert picture_bytes == picture_buffer.getvalue()
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_png_from_bytes():
@@ -63,11 +63,11 @@ async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_png_fro
         picture.save(picture_buffer, format=picture.format)
 
 
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 800,
         'max_height': 600
     })
-    output = await anext(outputs)
+    output = await anext(outputs.results)
 
     assert output.metadata['media_type'] == 'image/png'
     assert output.metadata['width'] == 800
@@ -77,7 +77,7 @@ async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_png_fro
     assert picture_bytes == picture_buffer.getvalue()
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_same_picture_png_from_bytes():
@@ -90,11 +90,11 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_png_from_b
 
     step = PreviewPicture()
     inputs = get_data(picture)
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 3000,
         'max_height': 3000
     })
-    output = await anext(outputs)
+    output = await anext(outputs.results)
 
     assert output.metadata['media_type'] == 'image/png'
     assert output.metadata['width'] == 2400
@@ -104,7 +104,7 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_png_from_b
     assert picture_bytes == picture.getvalue()
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_from_bytes():
@@ -118,11 +118,11 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_from_b
     step = PreviewPicture()
     inputs = get_data(picture)
 
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 1280,
         'max_height': 960
     })
-    output = await anext(outputs)
+    output = await anext(outputs.results)
 
     assert output.metadata['media_type'] == 'image/jpeg'
     assert output.metadata['width'] == 1280
@@ -132,7 +132,7 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_from_b
     assert picture_bytes == picture.getvalue() # should be exactly the same
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_fail_input_is_not_picture():
@@ -145,12 +145,12 @@ async def test_preview_picture_fail_input_is_not_picture():
     step = PreviewPicture()
     inputs = get_data(picture)
 
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 1280,
         'max_height': 960
     })
     with pytest.raises(PIL.UnidentifiedImageError):
-        await anext(outputs)
+        await anext(outputs.results)
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_url():
@@ -165,11 +165,11 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_url():
     step = PreviewPicture()
     inputs = get_data()
 
-    outputs = step.process(inputs, {
+    outputs = await step.process(inputs, {
         'max_width': 3000,
         'max_height': 3000
     })
-    output = await anext(outputs)
+    output = await anext(outputs.results)
 
     assert output.metadata['media_type'] == 'image/png'
     assert output.metadata['width'] == 2400
@@ -179,5 +179,5 @@ async def test_preview_picture_success_from_inputs_bytes_same_picture_jpg_url():
     assert picture_bytes == picture.getvalue() # should be exactly the same
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 

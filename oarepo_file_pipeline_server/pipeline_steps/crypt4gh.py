@@ -13,12 +13,12 @@ from oarepo_file_pipeline_server.pipeline_data.async_writer import AsyncWriter
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 from oarepo_file_pipeline_server.pipeline_data.queue_pipeline_data import QueuePipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
-from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
+from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepResults
 
 
 class Crypt4GH(PipelineStep):
     """Pipeline step to add a new recipient to Crypt4GH file.."""
-    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> AsyncIterator[PipelineData] | None:
+    async def process(self, inputs: AsyncIterator[PipelineData] | None, args: dict) -> StepResults:
         """
         Add new recipient to Crypt4GH file.
 
@@ -31,7 +31,6 @@ class Crypt4GH(PipelineStep):
             raise ValueError("No input data or arguments were provided to Crypt4GH step.")
         if inputs:
             assert not isinstance(inputs, PipelineData)
-
             input_stream = await anext(inputs)
         elif args and "source_url" in args:
             from oarepo_file_pipeline_server.utils import http_session
@@ -42,17 +41,25 @@ class Crypt4GH(PipelineStep):
         recipient_pub = args.get("recipient_pub")
         results = await sync_stream_runner(crypt4gh_add_recipient, input_stream, recipient_pub)
 
-        item_type, item_value = await results.get()
-        while item_type != 'complete':
-            if item_type == 'error':
-                raise item_value
+        item_type, file_count = await results.get()
+        if item_type != "file_count":
+            results.stop()
+            raise ValueError(f"Implementation error, expected 'file_count', got '{file_count}'")
 
-            if item_type != 'startfile':
-                raise ValueError(f"Implementation error: {item_type}")
-
-            yield QueuePipelineData(results, metadata=item_value)
+        async def get_results() -> AsyncIterator[PipelineData]:
             item_type, item_value = await results.get()
 
+            while item_type != 'complete':
+                if item_type == 'error':
+                    raise item_value
+
+                if item_type != 'startfile':
+                    raise ValueError(f"Implementation error: {item_type}")
+
+                yield QueuePipelineData(results, metadata=item_value)
+                item_type, item_value = await results.get()
+
+        return StepResults(file_count, get_results())
 
 def crypt4gh_add_recipient(input_stream, recipient_pub: str, result_queue: ResultQueue):
     """Add new recipient to Crypt4GH file."""
@@ -72,7 +79,7 @@ def crypt4gh_add_recipient(input_stream, recipient_pub: str, result_queue: Resul
         'media_type': 'application/octet-stream',
         'file_name': 'crypt4gh.c4gh',
     }
-    with AsyncWriter(metadata, result_queue) as async_writer:
+    with AsyncWriter(1, metadata, result_queue) as async_writer:
         writer = Crypt4GHWriter(filter4gh, async_writer)
         writer.write()
 

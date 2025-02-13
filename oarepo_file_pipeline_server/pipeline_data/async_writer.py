@@ -14,10 +14,11 @@ from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
 
 class AsyncWriter(PipelineData):
     """Writer class around QueuePipelineData."""
-    def __init__(self, metadata: dict, queue: ResultQueue) -> None:
+    def __init__(self, file_count:int, metadata: dict, queue: ResultQueue) -> None:
         """Initialize AsyncWriter."""
         self.metadata = metadata
         self.queue = queue
+        self.queue.put('file_count', file_count)
         self.queue.put('startfile', metadata)
 
     def write(self, bytes_array) -> None:

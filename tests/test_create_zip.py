@@ -22,13 +22,13 @@ async def test_create_zip_success_from_url():
     inputs = get_data()
     step = CreateZip()
 
-    outputs = step.process(inputs, args={})
-    output = await anext(outputs)
+    outputs = await step.process(inputs, args={})
+    output = await anext(outputs.results)
     chunks = b''
     chunks += await output.read()
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
     with zipfile.ZipFile(io.BytesIO(chunks)) as zf:
         for file_name in zf.namelist():
@@ -65,13 +65,13 @@ async def test_extract_file_zip_success_from_input_bytes():
     inputs = get_data(file1, file2)
     step = CreateZip()
 
-    outputs = step.process(inputs, args={})
-    output = await anext(outputs)
+    outputs = await step.process(inputs, args={})
+    output = await anext(outputs.results)
     chunks = b''
     chunks += await output.read()
 
     with pytest.raises(StopAsyncIteration):
-        await anext(outputs)
+        await anext(outputs.results)
 
     with zipfile.ZipFile(io.BytesIO(chunks)) as zf:
         for file_name in zf.namelist():
@@ -91,8 +91,8 @@ async def test_create_zip_no_inputs():
     step = CreateZip()
 
     with pytest.raises(ValueError, match="No input data provided to CreateZip step."):
-        output = step.process(None, args={})
-        await anext(output)
+        output = await step.process(None, args={})
+        await anext(output.results)
 
 async def get_data():
     with open("tests/files_for_tests/10mb_zero_file.txt", 'rb') as f:
@@ -118,7 +118,7 @@ async def test_zip_pipeline_data_get_async_data():
     zip_pipeline_data = ZipPipelineData(input_streams=None, metadata={})
     async for input_stream in get_data():
         total_files = total_files + 1
-        print(f'current file:{total_files}')
+        #print(f'current file:{total_files}')
         buffer = io.BytesIO()
         async for chunk in zip_pipeline_data.get_async_data(input_stream):
             buffer.write(chunk)
@@ -138,7 +138,7 @@ async def test_zip_pipeline_data_async_member_files():
     file_names = [f'file_{i}' for i in range(1000)]
 
     for index, (file_name, file_date, file_mode, file_zip_flag, file_stream) in enumerate(results):
-        print(f'validating file:{index}')
+        #print(f'validating file:{index}')
         assert file_name ==  file_names[index]
         assert file_mode == S_IFREG | 0o600
         assert file_zip_flag == ZIP_64
@@ -197,7 +197,7 @@ async def test_ZipPipelineData_zipped_file_iterator_while_loop():
     with zipfile.ZipFile(buffer, 'r') as zf:
         zip_file_names = zf.namelist()
 
-        print("Files inside the zip:", zip_file_names)
+        #print("Files inside the zip:", zip_file_names)
 
         assert 'file_0' in zip_file_names
         assert 'file_1' in zip_file_names
@@ -254,8 +254,8 @@ async def test_zip_pipeline_data_anext_for_loop():
 async def test_create_zip_success_from_input_bytes_1000_files():
     inputs = get_data()
     create_zip = CreateZip()
-    result = create_zip.process(inputs, {})
-    zip_pipeline_data = await anext(result)
+    result = await create_zip.process(inputs, {})
+    zip_pipeline_data = await anext(result.results)
     assert zip_pipeline_data.metadata['file_name'] == "created.zip"
 
     buffer = io.BytesIO()
