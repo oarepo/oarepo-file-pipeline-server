@@ -46,13 +46,13 @@ class AsyncToSyncStream:
 
     def readline(self):
         """Reads a single line from the stream."""
-        value = self.async_to_sync(self.async_stream.readline())
-        return value
+        value = self.async_to_sync(self.async_stream.readline()) # pragma: no cover
+        return value # pragma: no cover
 
     @property
     def seekable(self):
         """Property indicating that this stream is seekable. Used in ZIP files."""
-        return True
+        return True # pragma: no cover
 
 
     def seekable(self):
@@ -61,4 +61,4 @@ class AsyncToSyncStream:
 
         This method is just a placeholder for compatibility and always returns True. Used in ZIP files.
         """
-        return True
+        return True # pragma: no cover

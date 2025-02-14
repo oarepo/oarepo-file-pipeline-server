@@ -10,6 +10,27 @@ from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipel
 from oarepo_file_pipeline_server.pipeline_steps.preview_picture import PreviewPicture
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_preview_picture_no_inputs_no_args():
+    step = PreviewPicture()
+
+    with pytest.raises(ValueError, match="No input or arguments were provided to PreviewPicture step."):
+        await step.process(None,{})
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_preview_picture_no_inputs_no_source_url():
+    step = PreviewPicture()
+
+    with pytest.raises(ValueError, match="No input provided."):
+        await step.process(None,{'max_height': 100})
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_preview_picture_missing_extra_args():
+    step = PreviewPicture()
+
+    with pytest.raises(ValueError, match="No max height or no max width provided."):
+        await step.process(None,{'source_url':'some_url','max_height': 100})
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_preview_picture_success_from_inputs_bytes_to_smaller_size_jpg_from_bytes():
     with open("tests/files_for_tests/nando-jpeg-quality-001.jpg", "rb") as f:
         picture = io.BytesIO(f.read())

@@ -30,7 +30,7 @@ class PipelineData(Protocol):
         :param n: The number of bytes to read. Defaults to reading the entire stream if `n` is -1.
         :return: The bytes read from the stream.
         """
-        ...
+        ... # pragma: no cover
 
     def __aiter__(self) -> Self:
         """
@@ -41,7 +41,7 @@ class PipelineData(Protocol):
 
         :return: The current object, which is the iterable.
         """
-        ...
+        ... # pragma: no cover
 
     async def __anext__(self) -> bytes:
         """
@@ -53,4 +53,4 @@ class PipelineData(Protocol):
         :return: The next chunk of data as bytes.
         :raises StopAsyncIteration: When there is no more data to iterate over.
         """
-        ...
+        ... # pragma: no cover

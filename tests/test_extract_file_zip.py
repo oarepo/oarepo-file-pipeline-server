@@ -118,6 +118,14 @@ async def test_preview_zip_invalid_inputs():
         outputs = await step.process(get_data(), args={'directory_or_file_name': "test_zip/test1.txt"})
         await anext(outputs.results)
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extract_zip_no_inputs_no_source_url():
+    step = ExtractZip()
+
+    with pytest.raises(ValueError, match="No input nor source_url were provided."):
+        await step.process(None,{
+            'directory_or_file_name': "test_zip/test1.txt",
+        })
 
 """
 class Test(unittest.IsolatedAsyncioTestCase):

@@ -9,6 +9,13 @@ from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipel
 from oarepo_file_pipeline_server.pipeline_steps.preview_zip import PreviewZip
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_preview_zip_no_inputs_no_source_url():
+    step = PreviewZip()
+
+    with pytest.raises(ValueError, match="No input or source_link were provided."):
+        await step.process(None,{'something':'something'})
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_preview_zip_success_from_url():
     step = PreviewZip()
 

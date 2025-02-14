@@ -43,7 +43,7 @@ class PipelineStep(abc.ABC):
         :return: An asynchronous iterator of `PipelineData` objects representing the processed outputs.
                  Can return `None` if no output is produced.
         """
-        pass
+        pass # pragma: no cover
 
 
 

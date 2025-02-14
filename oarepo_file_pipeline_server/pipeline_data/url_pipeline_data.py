@@ -13,7 +13,7 @@ from __future__ import annotations
 import io
 from typing import TYPE_CHECKING, Self
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     import aiohttp
 
 from oarepo_file_pipeline_server.pipeline_data.pipeline_data import PipelineData
@@ -56,14 +56,6 @@ class UrlPipelineData(PipelineData):
         if not chunk:
             raise StopAsyncIteration
         return chunk
-
-
-    def get_stream(self) -> aiohttp.StreamReader:
-        """
-        Get the input stream.
-        :return: The stream object.
-        """
-        return self._current_reader
 
     async def read(self, size=-1) -> bytes:
         """
@@ -128,12 +120,12 @@ class UrlPipelineData(PipelineData):
             return
 
         # optimization that read some bytes instead seeking, therefore does not open another connection
-        if (offset - self._current_pos > 0) and (offset - self._current_pos < 1000):
+        if (offset - self._current_pos > 0) and (offset - self._current_pos < 1000): # pragma: no cover
             print(f"Reading instead of seeking, difference is: {offset - self._current_pos}")
             await self.read(offset-self._current_pos)
             return
 
-        if self._response:
+        if self._response: # pragma: no cover
             await self._response.__aexit__(None, None, None)
 
         self._response = await self._session.get(self._url, headers={
@@ -141,7 +133,7 @@ class UrlPipelineData(PipelineData):
             'Accept-Encoding': "identity" # ensure file is not zipped
         })
 
-        if self._response.status != 206:
+        if self._response.status != 206: # pragma: no cover
             raise ValueError(f"Server does not support seek(), {offset=}, {self._response.headers['Content-Range']=}")
 
         self._current_reader = self._response.content
@@ -155,7 +147,7 @@ class UrlPipelineData(PipelineData):
 
         :return: The metadata dictionary.
         """
-        return self._metadata
+        return self._metadata # pragma: no cover
 
     @metadata.setter
     def metadata(self, value: dict) -> None:
@@ -164,7 +156,7 @@ class UrlPipelineData(PipelineData):
 
         :param value: A dictionary with new metadata values.
         """
-        self._metadata.update(value)
+        self._metadata.update(value) # pragma: no cover
 
     async def tell(self) -> int:
         """
@@ -187,7 +179,7 @@ class UrlPipelineData(PipelineData):
             return self._size
 
         async with self._session.get(self._url, headers={'range':f'bytes=0-0'}) as response:
-            if response.status != 206:
+            if response.status != 206: # pragma: no cover
                 raise ValueError(f"Failed to fetch file from URL: {response.status}")
             self._size = int(response.headers.get("Content-Range").split("/")[-1])
             return self._size

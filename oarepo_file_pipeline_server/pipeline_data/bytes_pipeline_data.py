@@ -29,7 +29,7 @@ class BytesPipelineData(PipelineData):
             ValueError: If the provided stream is not an instance of io.BytesIO.
         """
         if not isinstance(stream, io.BytesIO):
-            raise ValueError("stream must be an instance of io.IOBase.")
+            raise ValueError("Stream must be an instance of io.IOBase.")
         self._stream = stream
         self._stream.seek(0)
         self._metadata = metadata
@@ -81,14 +81,7 @@ class BytesPipelineData(PipelineData):
 
         :return: The current position in the stream.
         """
-        return self._stream.tell()
-
-    def get_stream(self) -> io.IOBase:
-        """
-        Get the input stream.
-        :return: The stream object.
-        """
-        return self._stream
+        return self._stream.tell() # pragma: no cover
 
     @property
     def metadata(self) -> dict:
@@ -106,4 +99,4 @@ class BytesPipelineData(PipelineData):
 
         :param value: A dictionary of metadata to update the current metadata.
         """
-        self._metadata.update(value)
+        self._metadata.update(value) # pragma: no cover

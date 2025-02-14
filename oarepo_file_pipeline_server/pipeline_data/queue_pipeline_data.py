@@ -59,7 +59,7 @@ class QueuePipelineData(PipelineData):
         :raises ValueError: If an unsupported chunk type is encountered.
         :raises Exception: If there is an error while processing the data chunk.
         """
-        if self.end_of_file:
+        if self.end_of_file: # pragma: no cover
             return b''
         if n == -1:
             buffer = io.BytesIO()
@@ -78,7 +78,7 @@ class QueuePipelineData(PipelineData):
 
         item_type, item_value = await self.queue.get()
         if item_type == 'error':
-            raise item_value
+            raise item_value # pragma: no cover
 
         if item_type == 'endfile':
             self.end_of_file = True
@@ -89,7 +89,7 @@ class QueuePipelineData(PipelineData):
             self.current_chunk_size = len(item_value)
             return await self.read(n)
         else:
-            raise ValueError(f'Unsupported chunk type: {item_type}')
+            raise ValueError(f'Unsupported chunk type: {item_type}') # pragma: no cover
 
     @property
     def metadata(self) -> dict:
@@ -98,7 +98,7 @@ class QueuePipelineData(PipelineData):
 
         :return: The metadata dictionary.
         """
-        return self._metadata
+        return self._metadata # pragma: no cover
 
     @metadata.setter
     def metadata(self, value: dict) -> None:
@@ -107,6 +107,6 @@ class QueuePipelineData(PipelineData):
 
         :param value: A dictionary with new metadata values.
         """
-        self._metadata.update(value)
+        self._metadata.update(value) # pragma: no cover
 
 

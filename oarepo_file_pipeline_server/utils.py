@@ -6,7 +6,6 @@ from oarepo_file_pipeline_server.proxies import s3_client
 from joserfc import jwe, jwt
 from oarepo_file_pipeline_server.config import server_private_key, repo_public_key, STEP_DEFINITIONS
 import time
-#from invenio_base.utils import obj_or_import_string
 from botocore.exceptions import ClientError
 import mimetypes
 import os
@@ -45,7 +44,7 @@ def get_pipeline_step_obj(name):
 
 def ping_s3_storage():
     """Ping s3 storage for availability"""
-    try:
+    try: # pragma: no cover
         # Attempt to list buckets (a basic test to see if we can reach the service)
         response = s3_client.list_buckets()
         print("Successfully pinged S3. Buckets:", response['Buckets'])

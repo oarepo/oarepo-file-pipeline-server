@@ -21,6 +21,35 @@ async def test_async_test_aiter():
     assert buffer.getvalue() == b'123neco456neco'
     assert data.metadata == {'file_name': 'neco'}
 
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_bytes_pipeline_data_constructor():
+    with pytest.raises(ValueError,match="Stream must be an instance of io.IOBase."):
+         BytesPipelineData({'file_name':'neco'}, str('123neco456neco'))
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_bytes_pipeline_data_seek():
+    data = BytesPipelineData({'file_name':'neco'}, io.BytesIO(b'123neco456neco'))
+
+    await data.seek(0)
+    assert await data.read(1) == b'1'
+
+    await data.seek(3)
+    assert await data.read(1) == b'n'
+
+    from os import SEEK_END
+    await data.seek(0, SEEK_END)
+    assert await data.read(1) == b''
+
+    await data.seek(-5, SEEK_END)
+    assert await data.read(5) == b'6neco'
+
+    pos = await data.seek(100)
+    assert pos == 100
+
+
+
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("chunk_size", [1, 2, 5, 10])
 async def test_bytes_pipeline_data_read_chunks(chunk_size):
@@ -41,6 +70,54 @@ async def test_bytes_pipeline_data_read_all():
     r = await data.read()
 
     assert r == b'123neco456neco'
+
+@pytest.mark.asyncio
+async def test_url_pipeline_data_seek():
+    with open('tests/files_for_tests/test_zip.zip', 'rb') as f:
+        expected_data = f.read()
+    buffer = io.BytesIO(expected_data)
+
+    async with aiohttp.ClientSession() as session:
+        data = UrlPipelineData(
+            "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zip",
+            session
+        )
+
+        assert data._size is None
+        assert data._current_reader is None
+
+        await data.seek(0, 2)
+        assert data._size == len(expected_data)
+        assert data._current_reader is None
+        assert data._current_pos == len(expected_data)
+
+        await data.seek(-10,2)
+        assert data._size == len(expected_data)
+        assert data._current_pos == len(expected_data) - 10
+
+        buffer.seek(-10, 2)
+        assert buffer.read() == await data.read()
+
+        await data.seek(0,1)
+        assert data._current_pos == len(expected_data)
+
+@pytest.mark.asyncio
+async def test_url_pipeline_data_tell():
+    with open('tests/files_for_tests/test_zip.zip', 'rb') as f:
+        expected_data = f.read()
+    buffer = io.BytesIO(expected_data)
+
+    async with aiohttp.ClientSession() as session:
+        data = UrlPipelineData(
+            "https://github.com/oarepo/oarepo-file-pipeline-server/raw/refs/heads/first-version/tests/files_for_tests/test_zip.zip",
+            session
+        )
+
+        actual_data = await data.read(10)
+        expected_data = buffer.read(10)
+        assert actual_data == expected_data
+
+        assert await data.tell() == 10
 
 
 @pytest.mark.asyncio

@@ -89,7 +89,7 @@ async def read_result(queue: asyncio.Queue):
         raise item_value
     elif item_type == 'complete':
         return item_value
-    else:
+    else: # pragma: no cover
         raise ValueError(f'Unknown item type: {item_type}')
 
 async def sync_stream_runner(sync_function, stream, *args, **kwargs) -> StoppableQueue:

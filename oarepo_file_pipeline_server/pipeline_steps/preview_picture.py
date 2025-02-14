@@ -46,6 +46,9 @@ class PreviewPicture(PipelineStep):
 
         height = args.get("max_height")
         width = args.get("max_width")
+        if height is None or width is None:
+            raise ValueError("No max height or no max width provided.")
+
         results = await sync_stream_runner(image_open, input_stream, height, width)
 
         item_type, item_value = await results.get()
@@ -71,9 +74,6 @@ class PreviewPicture(PipelineStep):
 
 def image_open(input_stream, max_height: int, max_width: int, result_queue: ResultQueue) -> None:
     """Synchronously Open picture, resize if required and sends the extracted picture as chunks."""
-    if max_height is None and max_width is None:
-        raise ValueError("No max height and no max width provided.")
-
     result_queue.put('file_count', 1)
 
     buffer = io.BytesIO(input_stream.read())
