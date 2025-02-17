@@ -25,7 +25,7 @@ setup_test_venv(){
   pip install stream-zip
   pip install pillow
   pip install pytest-random-order
-  pip install oarepo-crypt4gh
+  pip install oarepo-c4gh
   echo "Testing venv is set up"
 )
 }
