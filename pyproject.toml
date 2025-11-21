@@ -8,9 +8,6 @@ version = "0.1.0"
 description = "A library for server handling pipeline steps"
 requires-python = ">=3.13,<3.14"
 
-[project.urls]
-Homepage = "https://github.com/oarepo/oarepo-file-pipeline-server"
-
 dependencies = [
     "oarepo[rdm,tests]>=14,<15",
     "fastapi",
@@ -19,6 +16,10 @@ dependencies = [
     "joserfc",
     "oarepo-c4gh",
 ]
+
+[project.urls]
+Homepage = "https://github.com/oarepo/oarepo-file-pipeline-server"
+
 
 [tool.setuptools]
 include-package-data = false
