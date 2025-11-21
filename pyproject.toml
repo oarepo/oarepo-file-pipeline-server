@@ -12,6 +12,7 @@ requires-python = ">=3.13,<3.14"
 Homepage = "https://github.com/oarepo/oarepo-file-pipeline-server"
 
 dependencies = [
+    "oarepo[rdm,tests]>=14,<15",
     "fastapi",
     "redis",
     "boto3",
@@ -30,4 +31,7 @@ exclude = ["tests*"]
 tests = [
     "pytest",
     "crypt4gh",
+]
+oarepo14= [
+    "oarepo>=14.0.0,<15.0.0"
 ]
