@@ -32,6 +32,6 @@ tests = [
     "pytest",
     "crypt4gh",
 ]
-oarepo14= [
+oarepo14 = [
     "oarepo>=14.0.0,<15.0.0"
 ]
