@@ -32,6 +32,7 @@ exclude = ["tests*"]
 tests = [
     "pytest",
     "crypt4gh",
+    "minio"
 ]
 oarepo14 = [
     "oarepo>=14.0.0,<15.0.0"
