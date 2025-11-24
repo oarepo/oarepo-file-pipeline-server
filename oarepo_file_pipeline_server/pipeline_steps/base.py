@@ -10,30 +10,21 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from collections.abc import Iterator
-
-    from oarepo_file_pipeline_server.pipeline_data.base import PipelineData
+from oarepo_file_pipeline_server.pipeline_data.base import PipelineData
 
 UNKNOWN_FILE_COUNT = -1
 
 
-class StepResults:
+class StepIO(list[PipelineData]):
     """Class representing the results of a pipeline step."""
-
-    def __init__(self, file_count: int, results: Iterator[PipelineData]):
-        """Initialize StepResults with file count and results iterator."""
-        self.file_count = file_count
-        self.results = results
 
 
 class PipelineStep(abc.ABC):
     """Abstract base class for a step in a processing pipeline."""
 
     @abc.abstractmethod
-    def process(self, inputs: Iterator[PipelineData] | None, args: dict) -> StepResults:
+    def process(self, inputs: StepIO, args: dict) -> StepIO:
         """Process the input data and yield the output data.
 
         The method should be implemented by subclasses to define the specific logic

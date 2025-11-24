@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from wsgiref.types import StartResponse, WSGIEnvironment
 
     from oarepo_file_pipeline_server.pipeline_data.base import PipelineData
-    from oarepo_file_pipeline_server.pipeline_steps.base import StepResults
+    from oarepo_file_pipeline_server.pipeline_steps.base import StepIO
 
 
 def split_and_clean(path: str) -> list[str]:
@@ -120,8 +120,8 @@ class FilePipelineServer:
             raise ValueError("No pipeline steps found in payload")
 
         # Start with no input (first step will use source_url from args)
-        current_input: Iterable[PipelineData] | None = None
-        step_results: StepResults | None = None
+        current_input: StepIO | None = None
+        step_results: StepIO | None = None
 
         # Execute each pipeline step in order
         for step_config in steps:
@@ -141,8 +141,7 @@ class FilePipelineServer:
             # Process step
             step_results = pipeline_step_obj.process(current_input, step_args)  # type: ignore[arg-type]
 
-            # Update input for next step
-            current_input = step_results.results
+            current_input = step_results
 
         # After all steps, assert exactly one file in the stream
         if current_input is None:
@@ -151,7 +150,7 @@ class FilePipelineServer:
         if step_results is None:
             raise ValueError("Pipeline produced no step results")
 
-        assert step_results.file_count == 1, "Pipeline should produce exactly one output file"  # noqa: S101
+        assert len(step_results) == 1, "Pipeline should produce exactly one output file"  # noqa: S101
 
         # Get the single output file
         return next(iter(current_input))
@@ -201,10 +200,10 @@ class FilePipelineServer:
             def stream_file() -> Iterable[bytes]:
                 """Generate file chunks."""
                 try:
-                    yield from output_file
+                    yield from output_file.stream
                 finally:
                     # Clean up if the PipelineData has a close method
-                    close_method = getattr(output_file, "close", None)
+                    close_method = getattr(output_file.stream, "close", None)
                     if close_method is not None:
                         close_method()
 

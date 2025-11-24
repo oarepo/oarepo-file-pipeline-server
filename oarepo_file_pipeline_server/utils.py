@@ -11,24 +11,29 @@
 from __future__ import annotations
 
 import importlib
+import os
 import time
 from typing import TYPE_CHECKING, Any, cast
 
 from joserfc import jwe, jwt
+from joserfc.jwk import RSAKey
 
 if TYPE_CHECKING:
     from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep
 
 from oarepo_file_pipeline_server.config import (
     STEP_DEFINITIONS,
-    repo_public_key,
-    server_private_key,
 )
 
 
 def get_payload(jwe_token: bytes) -> dict[str, Any]:
     """Decrypts jwe token, then jws token and gets payload."""
     decoded_jwe_token = jwe_token.decode("utf-8")
+
+    # TODO: Later will be fetched from key server
+    server_private_key = RSAKey.import_key(os.environ["SERVER_PRIVATE_KEY"])
+    repo_public_key = RSAKey.import_key(os.environ["REPO_PUBLIC_KEY"])
+
     decrypted_jwe = jwe.decrypt_compact(decoded_jwe_token, server_private_key)
     encrypted_jwt = decrypted_jwe.plaintext
     if encrypted_jwt is None:

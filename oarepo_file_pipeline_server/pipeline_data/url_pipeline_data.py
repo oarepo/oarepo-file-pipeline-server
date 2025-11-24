@@ -10,48 +10,31 @@
 from __future__ import annotations
 
 import io
-from typing import Self
 
 import requests
 
 from .base import PipelineData
 
 
-class UrlPipelineData(PipelineData):
-    """Pipeline data that reads data from a URL stream."""
+class URLStream(io.RawIOBase):
+    """HTTP stream wrapper with seek support using range requests.
 
-    def __init__(self, url: str) -> None:
-        """Initialize the UrlPipelineData object with a URL."""
+    This class implements a seekable stream interface over HTTP by using
+    range requests. It efficiently handles chunked reading and caches the
+    file size for optimal performance.
+    """
+
+    def __init__(self, url: str):
+        """Initialize the URLStream with a URL.
+
+        :param url: The URL to stream data from.
+        """
+        super().__init__()
         self._url = url
         self._current_reader: requests.Response | None = None
         self._response: requests.Response | None = None
         self._current_pos = 0
         self._size: int | None = None
-        self._metadata: dict = {}
-
-    def __iter__(self) -> Self:
-        """Prepare the object for iteration.
-
-        This method makes the object iterable in a loop (e.g., `for` loop).
-
-        :return: The UrlPipelineData instance itself.
-        """
-        return self
-
-    def __next__(self) -> bytes:
-        """Retrieve the next chunk of data from the URL stream.
-
-        This method is used for iteration, retrieving chunks of
-        data as specified by the `read()` method.
-
-        :return: A chunk of data (65000 bytes).
-        :raises StopIteration: If there is no more data to read.
-        """
-        chunk = self.read(65000)
-
-        if not chunk:
-            raise StopIteration
-        return chunk
 
     def read(self, n: int = -1) -> bytes:
         """Read a specific number of bytes from the URL stream.
@@ -94,7 +77,7 @@ class UrlPipelineData(PipelineData):
                 break
         return ret.getvalue()
 
-    def seek(self, offset: int, whence: int = io.SEEK_SET) -> None:
+    def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
         """Seek to a specific position in the stream.
 
         This method allows moving to a certain byte position in the stream.
@@ -102,11 +85,12 @@ class UrlPipelineData(PipelineData):
 
         :param offset: The byte position to seek to.
         :param whence: Specifies how the offset is interpreted. Default is 0 (absolute).
+        :return: The new absolute position.
         """
         if whence == io.SEEK_END and offset == 0:
             self._current_pos = self.get_size()
             self._current_reader = None
-            return
+            return self._current_pos
 
         if whence == io.SEEK_END:
             offset += self.get_size()
@@ -117,12 +101,12 @@ class UrlPipelineData(PipelineData):
 
         # optimization that stays on the same position if already there, therefore does not open another connection
         if offset == self._current_pos and self._current_reader is not None:
-            return  # type: ignore[unreachable]
+            return self._current_pos  # type: ignore[unreachable]
 
         # optimization that read some bytes instead seeking, therefore does not open another connection
         if (offset - self._current_pos > 0) and (offset - self._current_pos < 1000):  # noqa: PLR2004
             self.read(offset - self._current_pos)
-            return
+            return self._current_pos
 
         if self._response:  # pragma: no cover
             self._response.close()  # type: ignore[unreachable]
@@ -142,24 +126,8 @@ class UrlPipelineData(PipelineData):
             raise ValueError(f"URL Source does not support seek(), offset={offset}, Content-Range={content_range}")
 
         self._current_reader = self._response
-        self._metadata["media_type"] = self._response.headers.get("Content-Type", "application/octet-stream")
         self._current_pos = offset
-
-    @property
-    def metadata(self) -> dict:
-        """Property holding metadata like file_name, media_type, etc.
-
-        :return: The metadata dictionary.
-        """
-        return self._metadata  # pragma: no cover
-
-    @metadata.setter
-    def metadata(self, value: dict) -> None:
-        """Setter for updating metadata.
-
-        :param value: A dictionary with new metadata values.
-        """
-        self._metadata.update(value)  # pragma: no cover
+        return self._current_pos
 
     def tell(self) -> int:
         """Return the current position in the stream.
@@ -190,3 +158,40 @@ class UrlPipelineData(PipelineData):
         """Close the underlying HTTP connection."""
         if self._response:
             self._response.close()
+
+
+class URLMetadata(dict):
+    """Dictionary containing metadata fetched from HTTP headers.
+
+    Retrieves metadata like content type and source URL from HTTP response
+    headers and stores them in a dictionary format.
+    """
+
+    def __init__(self, url: str):
+        """Initialize URLMetadata by fetching metadata from the URL.
+
+        :param url: The URL to fetch metadata from.
+        """
+        super().__init__()
+        self["source_url"] = url
+
+        # TODO: request.head for returns forbidden on presigned URLs
+        self._response = requests.get(
+            url,
+            headers={
+                "Accept-Encoding": "identity",  # ensure file is not zipped
+            },
+            stream=True,
+            timeout=10,
+        )
+
+        self["media_type"] = self._response.headers.get("Content-Type", "application/octet-stream")
+        self._response.close()
+
+
+class UrlPipelineData(PipelineData):
+    """Pipeline data that reads data from a URL stream."""
+
+    def __init__(self, url: str) -> None:
+        """Initialize the UrlPipelineData object with a URL."""
+        super().__init__(stream=URLStream(url), metadata=URLMetadata(url))
