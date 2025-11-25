@@ -152,7 +152,7 @@ def redis_client():
 @pytest.fixture(scope="session")
 def minio_client():
     return Minio(
-        "localhost:9000",
+        endpoint="localhost:9000",
         access_key="invenio",
         secret_key="invenio8",  # noqa: S106
         secure=False,
@@ -164,7 +164,7 @@ def create_c4gh_file_minio(minio_client, tmp_path):
     bucket = "default"
 
     # Ensure bucket exists
-    if not minio_client.bucket_exists(bucket):
+    if not minio_client.bucket_exists(bucket_name=bucket):
         minio_client.make_bucket(bucket)
 
     # Build the file path relative to this file location
@@ -192,7 +192,7 @@ def create_c4gh_file_minio(minio_client, tmp_path):
     )
 
     # Optional: verify upload
-    stat = minio_client.stat_object(bucket, "secret.txt.c4gh")
+    stat = minio_client.stat_object(bucket_name=bucket, object_name="secret.txt.c4gh")
     assert stat.size > 0
 
 
@@ -214,8 +214,8 @@ def insert_into_redis_decrypt_step(redis_client, minio_client, create_c4gh_file_
     from datetime import timedelta
 
     url = minio_client.presigned_get_object(
-        "default",
-        "secret.txt.c4gh",
+        bucket_name="default",
+        object_name="secret.txt.c4gh",
         expires=timedelta(minutes=10),
     )
 
@@ -264,8 +264,8 @@ def insert_into_redis_add_recipient_step(redis_client, minio_client, create_c4gh
     from datetime import timedelta
 
     url = minio_client.presigned_get_object(
-        "default",
-        "secret.txt.c4gh",
+        bucket_name="default",
+        object_name="secret.txt.c4gh",
         expires=timedelta(minutes=10),
     )
 
@@ -313,8 +313,8 @@ def insert_into_redis_add_recipient_then_decrypt_step(redis_client, minio_client
     from datetime import timedelta
 
     url = minio_client.presigned_get_object(
-        "default",
-        "secret.txt.c4gh",
+        bucket_name="default",
+        object_name="secret.txt.c4gh",
         expires=timedelta(minutes=10),
     )
 
