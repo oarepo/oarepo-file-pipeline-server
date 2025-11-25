@@ -14,7 +14,7 @@ dependencies = [
     "redis",
     "boto3",
     "joserfc",
-    "oarepo-c4gh",
+    "oarepo-c4gh @ git+ssh://git@github.com/oarepo/oarepo-c4gh.git@linear-edit-lists",
 ]
 
 [project.urls]
