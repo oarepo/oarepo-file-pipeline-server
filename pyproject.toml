@@ -9,12 +9,11 @@ description = "A library for server handling pipeline steps"
 requires-python = ">=3.13,<3.15"
 
 dependencies = [
-    "oarepo[rdm,tests]>=14,<15",
     "fastapi",
     "redis",
     "boto3",
     "joserfc",
-    "oarepo-c4gh @ git+ssh://git@github.com/oarepo/oarepo-c4gh.git@linear-edit-lists",
+    "oarepo-c4gh @git+https://github.com/oarepo/oarepo-c4gh.git@linear-edit-lists",
 ]
 
 [project.urls]
