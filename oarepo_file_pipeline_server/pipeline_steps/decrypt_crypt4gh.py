@@ -9,8 +9,9 @@
 
 from __future__ import annotations
 
-from oarepo_c4gh import C4GHKey, Crypt4GH  # type: ignore[import-untyped]
+from oarepo_c4gh import Crypt4GH  # type: ignore[import-untyped]
 
+from oarepo_file_pipeline_server.config import REPOSITORY_CRYPT4GH_KEY_COLLECTION
 from oarepo_file_pipeline_server.pipeline_data.base import PipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
 from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepIO
@@ -38,24 +39,18 @@ class Crypt4GHDecryptStep(PipelineStep):
         else:
             raise ValueError("No input nor source_url were provided.")
 
-        recipient_sec = args.get("recipient_sec")
-        if not recipient_sec:
-            raise ValueError("No recipient_sec provided in arguments.")
         # Process the file (decrypt it)
-        output_data = self._process_crypt4gh(input_stream, recipient_sec)
+        output_data = self._process_crypt4gh(input_stream)
         return StepIO([output_data])
 
-    def _process_crypt4gh(self, input_stream: PipelineData, recipient_sec: str) -> PipelineData:
+    def _process_crypt4gh(self, input_stream: PipelineData) -> PipelineData:
         """Decrypt a Crypt4GH file.
 
         :param input_stream: The input PipelineData containing the Crypt4GH file.
         :return: A PipelineData containing the decrypted data (streaming).
         """
-        # Load server key
-        recipient_priv_key = C4GHKey.from_string(recipient_sec)  # TODO: later will be fetched from http key server
-
         # Create Crypt4GH reader - it will decrypt the data
-        crypt4gh = Crypt4GH(reader_key=recipient_priv_key, istream=input_stream.stream)
+        crypt4gh = Crypt4GH(reader_key=REPOSITORY_CRYPT4GH_KEY_COLLECTION, istream=input_stream.stream)
         opened_stream = crypt4gh.open("rb")
 
         # Create metadata
@@ -66,6 +61,7 @@ class Crypt4GHDecryptStep(PipelineStep):
         metadata = {
             "media_type": "application/octet-stream",
             "file_name": output_filename,
+            "download": True,
         }
 
         return PipelineData(stream=opened_stream, metadata=metadata)

@@ -140,3 +140,32 @@ def test_process_pipeline_add_recipient_then_decrypt(insert_into_redis_add_recip
         buffer.write(chunk)
 
     assert buffer.getvalue() == b"Super super secret file", "Decrypted content does not match expected."
+
+
+def test_process_pipeline_validate(insert_into_redis_validate_step):
+    """Test validation of a Crypt4GH file that can be decrypted."""
+    import json
+
+    TOKEN_ID = insert_into_redis_validate_step
+    # Create server instance
+    server = FilePipelineServer(redis_host="localhost", redis_port=6379, redis_db=0, prefix="pipeline")
+
+    output_file = server.process_pipeline(TOKEN_ID)
+
+    # Check the validation result in metadata
+    metadata = output_file.metadata
+    assert metadata.get("media_type") == "application/json", "Response should be JSON"
+    assert "validation" in metadata, "Validation result not found in metadata"
+    assert metadata["validation"] is True, "File should be valid for decryption"
+    assert metadata["error"] is None, "Error should be None for valid file"
+
+    # Read and parse the JSON response from the stream
+    output_stream = output_file.stream
+    buffer = io.BytesIO()
+    for chunk in output_stream:
+        buffer.write(chunk)
+
+    response_data = json.loads(buffer.getvalue().decode("utf-8"))
+    assert response_data["valid"] is True, "JSON response should indicate file is valid"
+    assert response_data["error"] is None, "JSON response should have no error"
+    assert "file_name" in response_data, "JSON response should contain file_name"

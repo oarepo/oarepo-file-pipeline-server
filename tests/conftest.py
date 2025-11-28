@@ -13,6 +13,11 @@ import os
 import subprocess
 from pathlib import Path
 
+# Set KEY_PROVIDER and config file before any project imports
+# This ensures config.py uses the correct provider and configuration
+os.environ["KEY_PROVIDER"] = "local"
+os.environ["CONFIG_FILE"] = "tests/config_test.json"
+
 import pytest
 import redis
 from joserfc import jwe, jwt
@@ -197,19 +202,30 @@ def create_c4gh_file_minio(minio_client, tmp_path):
 
 
 @pytest.fixture
-def insert_into_redis_decrypt_step(redis_client, minio_client, create_c4gh_file_minio):
+def keys_and_headers():
+    from oarepo_file_pipeline_server.config import KEY_MANAGEMENT_SERVICE
+
     # public RSA keys of running repository for signing JWT token (we use public key to verify signature)
     PIPELINE_REPOSITORY_JWK = {
         "private_key": repo_private_key,
         "public_key": repo_public_key,
     }
+    KEY_MANAGEMENT_SERVICE.get_rsa_key("repo_public_key")
 
     # Public RSA key of this server to encrypt JWE token with payload (that is placed into redis)
     PIPELINE_JWK = {
         "public_key": server_public_key,
     }
+    KEY_MANAGEMENT_SERVICE.get_rsa_key("server_public_key")
 
     protected_header = {"alg": "RSA-OAEP", "enc": "A256GCM"}
+
+    return PIPELINE_REPOSITORY_JWK, PIPELINE_JWK, protected_header
+
+
+@pytest.fixture
+def insert_into_redis_decrypt_step(redis_client, minio_client, create_c4gh_file_minio, keys_and_headers):
+    PIPELINE_REPOSITORY_JWK, PIPELINE_JWK, protected_header = keys_and_headers
 
     from datetime import timedelta
 
@@ -227,7 +243,6 @@ def insert_into_redis_decrypt_step(redis_client, minio_client, create_c4gh_file_
                 "type": "decrypt_crypt4gh",
                 "arguments": {
                     "source_url": source_url,
-                    "recipient_sec": recipient_key_priv_c4gh,
                 },
             },
         ],
@@ -247,19 +262,8 @@ def insert_into_redis_decrypt_step(redis_client, minio_client, create_c4gh_file_
 
 
 @pytest.fixture
-def insert_into_redis_add_recipient_step(redis_client, minio_client, create_c4gh_file_minio):
-    # public RSA keys of running repository for signing JWT token (we use public key to verify signature)
-    PIPELINE_REPOSITORY_JWK = {
-        "private_key": repo_private_key,
-        "public_key": repo_public_key,
-    }
-
-    # Public RSA key of this server to encrypt JWE token with payload (that is placed into redis)
-    PIPELINE_JWK = {
-        "public_key": server_public_key,
-    }
-
-    protected_header = {"alg": "RSA-OAEP", "enc": "A256GCM"}
+def insert_into_redis_add_recipient_step(redis_client, minio_client, create_c4gh_file_minio, keys_and_headers):
+    PIPELINE_REPOSITORY_JWK, PIPELINE_JWK, protected_header = keys_and_headers
 
     from datetime import timedelta
 
@@ -296,19 +300,10 @@ def insert_into_redis_add_recipient_step(redis_client, minio_client, create_c4gh
 
 
 @pytest.fixture
-def insert_into_redis_add_recipient_then_decrypt_step(redis_client, minio_client, create_c4gh_file_minio):
-    # public RSA keys of running repository for signing JWT token (we use public key to verify signature)
-    PIPELINE_REPOSITORY_JWK = {
-        "private_key": repo_private_key,
-        "public_key": repo_public_key,
-    }
-
-    # Public RSA key of this server to encrypt JWE token with payload (that is placed into redis)
-    PIPELINE_JWK = {
-        "public_key": server_public_key,
-    }
-
-    protected_header = {"alg": "RSA-OAEP", "enc": "A256GCM"}
+def insert_into_redis_add_recipient_then_decrypt_step(
+    redis_client, minio_client, create_c4gh_file_minio, keys_and_headers
+):
+    PIPELINE_REPOSITORY_JWK, PIPELINE_JWK, protected_header = keys_and_headers
 
     from datetime import timedelta
 
@@ -332,7 +327,6 @@ def insert_into_redis_add_recipient_then_decrypt_step(redis_client, minio_client
                 "type": "decrypt_crypt4gh",
                 "arguments": {
                     "source_url": source_url,
-                    "recipient_sec": another_recipient_key_priv_c4gh,
                 },
             },
         ],
@@ -347,5 +341,42 @@ def insert_into_redis_add_recipient_then_decrypt_step(redis_client, minio_client
     encrypted_token = jwe.encrypt_compact(protected_header, signed_payload, PIPELINE_JWK["public_key"])
 
     redis_key = "789"
+    redis_client.set(redis_key, encrypted_token)
+    return redis_key
+
+
+@pytest.fixture
+def insert_into_redis_validate_step(redis_client, minio_client, create_c4gh_file_minio, keys_and_headers):
+    PIPELINE_REPOSITORY_JWK, PIPELINE_JWK, protected_header = keys_and_headers
+
+    from datetime import timedelta
+
+    url = minio_client.presigned_get_object(
+        bucket_name="default",
+        object_name="secret.txt.c4gh",
+        expires=timedelta(minutes=10),
+    )
+
+    source_url = url
+    payload = {
+        "pipeline_steps": [
+            {
+                "type": "validate_crypt4gh",
+                "arguments": {
+                    "source_url": source_url,
+                },
+            },
+        ],
+        "source_url": source_url,
+    }
+
+    header = {"alg": "RS256"}
+
+    timestamp = datetime.datetime.now(tz=datetime.UTC).timestamp()
+    claims = {"iat": timestamp, "exp": timestamp + 3000, **payload}
+    signed_payload = jwt.encode(header, claims, PIPELINE_REPOSITORY_JWK["private_key"])
+    encrypted_token = jwe.encrypt_compact(protected_header, signed_payload, PIPELINE_JWK["public_key"])
+
+    redis_key = "validate-123"
     redis_client.set(redis_key, encrypted_token)
     return redis_key

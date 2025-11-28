@@ -10,12 +10,12 @@
 from __future__ import annotations
 
 import io
-import os
 from io import BytesIO
 from typing import TYPE_CHECKING
 
 from oarepo_c4gh import AddRecipientFilter, C4GHKey, Crypt4GH  # type: ignore[import-untyped]
 
+from oarepo_file_pipeline_server.config import REPOSITORY_CRYPT4GH_KEY_COLLECTION
 from oarepo_file_pipeline_server.pipeline_data.base import PipelineData
 from oarepo_file_pipeline_server.pipeline_data.url_pipeline_data import UrlPipelineData
 from oarepo_file_pipeline_server.pipeline_steps.base import PipelineStep, StepIO
@@ -37,6 +37,8 @@ class Crypt4GHReaderWrapper(io.RawIOBase):
         :param crypt4gh_reader: The Crypt4GH reader containing header and data blocks.
         """
         self._buffer = BytesIO()  # Buffer for partial reads
+
+        # We serialize the header first to the buffer since it would be relatively small
         self._buffer.write(crypt4gh_reader.header.magic_bytes)
         self._buffer.write(crypt4gh_reader.header.version.to_bytes(4, "little"))
         self._buffer.write(len(crypt4gh_reader.header.packets).to_bytes(4, "little"))
@@ -113,20 +115,18 @@ class AddRecipientCrypt4GHStep(PipelineStep):
         :param input_stream: The input PipelineData containing the encrypted Crypt4GH file.
         :return: A PipelineData containing the file with the added recipient (streaming).
         """
-        # Load server key
-        server_key = C4GHKey.from_string(
-            os.environ["SERVER_PRIVATE_KEY_C4GH"]
-        )  # TODO: later will be fetched from http key server
+        # Load recipient key to add to the Crypt4GH header
         recipient_pub_key = C4GHKey.from_string(recipient_pub)
 
         # Create Crypt4GH reader
-        crypt4gh = Crypt4GH(reader_key=server_key, istream=input_stream.stream)
-        filter4gh = AddRecipientFilter(crypt4gh, recipient_pub_key.public_key)
+        crypt4gh = Crypt4GH(reader_key=REPOSITORY_CRYPT4GH_KEY_COLLECTION, istream=input_stream.stream)
+        filter4gh = AddRecipientFilter(crypt4gh, recipient_pub_key.public_key)  # type: ignore[arg-type]
 
         return PipelineData(
             stream=Crypt4GHReaderWrapper(filter4gh),
             metadata={
                 "file_name": input_stream.metadata.get("file_name", "output.c4gh"),
                 "media_type": "application/octet-stream",
+                "download": True,
             },
         )

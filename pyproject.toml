@@ -10,13 +10,18 @@ requires-python = ">=3.13,<3.15"
 
 dependencies = [
     "redis",
-    "boto3",
     "joserfc",
     "oarepo-c4gh @git+https://github.com/oarepo/oarepo-c4gh.git@linear-edit-lists",
+    "uwsgi",
+    "click",
+    "requests"
 ]
 
 [project.urls]
 Homepage = "https://github.com/oarepo/oarepo-file-pipeline-server"
+
+[project.scripts]
+oarepo-file-pipeline = "oarepo_file_pipeline_server.cli:cli"
 
 
 [tool.setuptools]
@@ -32,6 +37,4 @@ tests = [
     "crypt4gh",
     "minio"
 ]
-oarepo14 = [
-    "oarepo>=14.0.0,<15.0.0"
-]
+oarepo14 = []
