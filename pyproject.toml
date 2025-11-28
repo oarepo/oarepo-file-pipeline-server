@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oarepo_file_pipeline_server"
+version = "0.1.0"
+description = "A library for server handling pipeline steps"
+requires-python = ">=3.13,<3.15"
+
+dependencies = [
+    "redis",
+    "joserfc",
+    "oarepo-c4gh @git+https://github.com/oarepo/oarepo-c4gh.git@linear-edit-lists",
+    "uwsgi",
+    "click",
+    "requests"
+]
+
+[project.urls]
+Homepage = "https://github.com/oarepo/oarepo-file-pipeline-server"
+
+[project.scripts]
+oarepo-file-pipeline = "oarepo_file_pipeline_server.cli:cli"
+
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["oarepo_file_pipeline_server*"]
+exclude = ["tests*"]
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "crypt4gh",
+    "minio"
+]
+oarepo14 = []
