@@ -1,5 +1,21 @@
 FROM python:3.13-alpine
 
+ARG REPOSITORY_SITE_ORGANIZATION
+ARG REPOSITORY_SITE_NAME
+ARG REPOSITORY_IMAGE_URL
+ARG REPOSITORY_AUTHOR
+ARG REPOSITORY_GITHUB_URL
+ARG REPOSITORY_URL
+ARG REPOSITORY_DOCUMENTATION
+ARG DEPLOYMENT_VERSION
+
+LABEL maintainer="${REPOSITORY_SITE_ORGANIZATION}" \
+    org.opencontainers.image.authors="${REPOSITORY_AUTHOR}" \
+    org.opencontainers.image.title="${REPOSITORY_SITE_NAME} production image" \
+    org.opencontainers.image.url="${REPOSITORY_IMAGE_URL}" \
+    org.opencontainers.image.source="${REPOSITORY_GITHUB_URL}" \
+    org.opencontainers.image.documentation="${REPOSITORY_DOCUMENTATION}"
+
 # Install build dependencies for uwsgi and other packages
 RUN apk add python3-dev \
     build-base \
